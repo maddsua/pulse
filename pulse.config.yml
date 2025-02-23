@@ -1,0 +1,17 @@
+probes:
+  cloudlfare-dns:
+    http:
+      method: GET
+      url: https://1.1.1.1/
+      headers:
+        x-auth: test
+      interval: 60
+      timeout: 10
+  google:
+    http:
+      method: HEAD
+      url: http://google.com
+  railway:
+    http:
+      method: HEAD
+      url: http://railway.com
