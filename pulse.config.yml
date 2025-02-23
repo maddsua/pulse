@@ -3,8 +3,6 @@ probes:
     http:
       method: GET
       url: https://1.1.1.1/
-      headers:
-        x-auth: test
       interval: 60
       timeout: 10
   google:
@@ -15,3 +13,6 @@ probes:
     http:
       method: HEAD
       url: http://railway.com
+  github:
+    http:
+      url: http://github.com

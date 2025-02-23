@@ -137,6 +137,7 @@ func createProbeTasks(cfg RootConfig) ([]ProbeTask, error) {
 
 			slog.Info("Added http probe task",
 				slog.String("label", label),
+				slog.String("method", string(item.Http.Method)),
 				slog.String("url", item.Http.Url),
 				slog.Duration("interval", task.Interval()),
 				slog.Time("next_run", time.Now().Add(task.Interval())))
