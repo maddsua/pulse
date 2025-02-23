@@ -21,10 +21,11 @@ func NewHttpTask(label string, opts HttpProbeConfig) (*httpProbeTask, error) {
 	}
 
 	req, err := http.NewRequest(string(opts.Method), url.String(), nil)
-
 	if err != nil {
 		return nil, err
 	}
+
+	req.Header.Set("User-Agent", "maddsua/pulse")
 
 	return &httpProbeTask{
 		nextRun:  time.Now().Add(time.Second * time.Duration(opts.Interval)),
