@@ -7,3 +7,10 @@ sql:
       go:
         package: "queries"
         out: "storage/sqlite/queries"
+  - engine: "postgresql"
+    queries: "storage/timescale/queries.sql"
+    schema: "storage/timescale/migrations"
+    gen:
+      go:
+        package: "queries"
+        out: "storage/timescale/queries"

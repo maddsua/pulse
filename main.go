@@ -13,10 +13,13 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/joho/godotenv"
 	"gopkg.in/yaml.v3"
 )
 
 func main() {
+
+	godotenv.Load()
 
 	flagDebug := flag.Bool("debug", false, "Show debug logging")
 	flagConfigFile := flag.String("config", "./pulse.config.yml", "Set config value path")
@@ -54,11 +57,29 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	storage, err := NewSqliteStorage(*flagDataDir)
-	if err != nil {
-		slog.Error("Failed to initialize sqlite3 storage",
-			slog.String("err", err.Error()))
-		os.Exit(1)
+	var storage Storage
+
+	if val := os.Getenv("DATABASE_URL"); val != "" {
+
+		slog.Info("$DATABASE_URL is provided, overriding the default sqlite3 storage driver")
+
+		driver, err := NewTimescaleStorage(val)
+		if err != nil {
+			slog.Error("Failed to initialize timescale storage",
+				slog.String("err", err.Error()))
+			os.Exit(1)
+		}
+		storage = driver
+
+	} else {
+
+		driver, err := NewSqliteStorage(*flagDataDir)
+		if err != nil {
+			slog.Error("Failed to initialize sqlite3 storage",
+				slog.String("err", err.Error()))
+			os.Exit(1)
+		}
+		storage = driver
 	}
 
 	defer storage.Close()
@@ -72,6 +93,8 @@ func main() {
 		cancel()
 		slog.Info("Shutting down...")
 	}()
+
+	slog.Info("Starting tasks now")
 
 	taskhost := TaskHost{
 		Context: ctx,

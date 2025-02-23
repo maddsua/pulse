@@ -7,17 +7,18 @@ package queries
 
 import (
 	"context"
+	"time"
 )
 
 const getSeriesRange = `-- name: GetSeriesRange :many
 select id, time, label, status, elapsed from series
-where ?1 >= time
-	and ?2 <= time
+where $1 >= time
+	and $2 <= time
 `
 
 type GetSeriesRangeParams struct {
-	RangeFrom int64
-	RangeTo   int64
+	RangeFrom time.Time
+	RangeTo   time.Time
 }
 
 func (q *Queries) GetSeriesRange(ctx context.Context, arg GetSeriesRangeParams) ([]Series, error) {
@@ -56,17 +57,17 @@ insert into series (
 	status,
 	elapsed
 ) values (
-	?1,
-	?2,
-	?3,
-	?4
+	$1,
+	$2,
+	$3,
+	$4
 )
 `
 
 type InsertSeriesParams struct {
-	Time    int64
+	Time    time.Time
 	Label   string
-	Status  int64
+	Status  int16
 	Elapsed int64
 }
 

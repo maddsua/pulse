@@ -1,4 +1,4 @@
-create table if not exists series (
+create table series (
 	id integer primary key autoincrement,
 	time integer not null,
 	label text not null,

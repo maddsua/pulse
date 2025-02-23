@@ -96,8 +96,8 @@ func (this *sqliteStorage) Push(entry PulseEntry) error {
 func (this *sqliteStorage) QueryRange(from time.Time, to time.Time) ([]PulseEntry, error) {
 
 	entries, err := this.queries.GetSeriesRange(context.Background(), queries.GetSeriesRangeParams{
-		From: from.UnixNano(),
-		To:   to.UnixNano(),
+		RangeFrom: from.UnixNano(),
+		RangeTo:   to.UnixNano(),
 	})
 	if err != nil {
 		return nil, err

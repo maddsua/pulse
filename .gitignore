@@ -22,3 +22,4 @@ go.work
 
 # time series stuff
 data
+.env

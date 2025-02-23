@@ -1,2 +1,2 @@
-1. Add separate config options for http and icmp
-3. add icmp
+1. add data exporter
+2. add icmp
