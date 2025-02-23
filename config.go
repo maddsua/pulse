@@ -87,8 +87,9 @@ func (this *BaseProbeConfig) Valid() error {
 }
 
 type HttpProbeConfig struct {
-	Method HttpMethod `yaml:"method"`
-	Url    string     `yaml:"url"`
+	Method  HttpMethod        `yaml:"method"`
+	Url     string            `yaml:"url"`
+	Headers map[string]string `yaml:"headers"`
 	BaseProbeConfig
 }
 

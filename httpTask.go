@@ -27,6 +27,12 @@ func NewHttpTask(label string, opts HttpProbeConfig) (*httpProbeTask, error) {
 
 	req.Header.Set("User-Agent", "maddsua/pulse")
 
+	if opts.Headers != nil {
+		for key, val := range opts.Headers {
+			req.Header.Set(key, val)
+		}
+	}
+
 	return &httpProbeTask{
 		nextRun:  time.Now().Add(time.Second * time.Duration(opts.Interval)),
 		timeout:  time.Second * time.Duration(opts.Timeout),
