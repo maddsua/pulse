@@ -17,5 +17,6 @@ insert into series (
 
 -- name: GetSeriesRange :many
 select * from series
-where sqlc.arg(range_from) >= time
-	and sqlc.arg(range_to) <= time;
+where time >= sqlc.arg(range_from)
+	and time <= sqlc.arg(range_to);
+

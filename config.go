@@ -9,7 +9,8 @@ import (
 )
 
 type RootConfig struct {
-	Probes map[string]ProbeConfig `yaml:"probes"`
+	Probes    map[string]ProbeConfig `yaml:"probes"`
+	Exporters ExportersConfig        `yaml:"exporters"`
 }
 
 func (this *RootConfig) Valid() error {
@@ -121,4 +122,8 @@ func (this *HttpMethod) Valid() bool {
 
 	*this = HttpMethod(strings.ToUpper(string(*this)))
 	return *this == http.MethodGet || *this == http.MethodHead || *this == http.MethodPost
+}
+
+type ExportersConfig struct {
+	Series bool `yaml:"series"`
 }

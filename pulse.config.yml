@@ -16,3 +16,6 @@ probes:
   github:
     http:
       url: http://github.com
+
+exporters:
+  series: true

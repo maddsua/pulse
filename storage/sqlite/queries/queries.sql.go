@@ -12,8 +12,8 @@ import (
 
 const getSeriesRange = `-- name: GetSeriesRange :many
 select id, time, label, status, http_status, elapsed, latency from series
-where ?1 >= time
-	and ?2 <= time
+where time >= ?1
+	and time <= ?2
 `
 
 type GetSeriesRangeParams struct {

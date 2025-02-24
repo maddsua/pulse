@@ -7,8 +7,10 @@ import (
 	"flag"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -84,17 +86,66 @@ func main() {
 
 	defer storage.Close()
 
+	var serveMux *http.ServeMux
+	var srv *http.Server
+
+	if cfg.Exporters.Series {
+
+		const handlerPath = "/exporters/series"
+
+		slog.Info("Series exporter enabled",
+			slog.String("path", handlerPath))
+
+		//	ignore, this will be used in future to add more handlers
+		if serveMux == nil {
+			serveMux = &http.ServeMux{}
+		}
+
+		exporter := &SeriesExporter{Storage: storage}
+		serveMux.Handle(handlerPath, exporter)
+	}
+
 	go func() {
 
 		exit := make(chan os.Signal, 2)
 		signal.Notify(exit, syscall.SIGINT, syscall.SIGTERM)
 
 		<-exit
-		cancel()
+
 		slog.Info("Shutting down...")
+
+		if srv != nil {
+			_ = srv.Shutdown(ctx)
+		}
+
+		cancel()
 	}()
 
 	slog.Info("Starting tasks now")
+
+	if serveMux != nil {
+
+		port := os.Getenv("PORT")
+		if _, err := strconv.Atoi(port); err != nil || port == "" {
+			port = "7200"
+		}
+
+		srv := &http.Server{
+			Addr:    ":" + port,
+			Handler: serveMux,
+		}
+
+		slog.Info("Starting api server now",
+			slog.String("addr", srv.Addr))
+
+		go func() {
+			if err := srv.ListenAndServe(); err != nil && ctx.Err() == nil {
+				slog.Error("api server error",
+					slog.String("err", err.Error()))
+				os.Exit(1)
+			}
+		}()
+	}
 
 	taskhost := TaskHost{
 		Context: ctx,
