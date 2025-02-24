@@ -30,8 +30,7 @@ func (this *TaskHost) Run() {
 
 	var invokeTask = func(task ProbeTask) {
 
-		slog.Debug("Invoking probe task",
-			slog.String("label", task.Label()),
+		slog.Debug("exec "+task.Label(),
 			slog.Time("next_run", time.Now().Add(task.Interval())))
 
 		if err := task.Do(this.Context, this.Storage); err != nil {

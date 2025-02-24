@@ -115,8 +115,7 @@ func (this *httpProbeTask) Do(ctx context.Context, storage Storage) error {
 
 func (this *httpProbeTask) dispatchEntry(storage Storage, entry PulseEntry) error {
 
-	slog.Debug("Http probe: Update",
-		slog.String("label", this.label),
+	slog.Debug("upd http "+this.label,
 		slog.String("status", entry.Status.String()),
 		slog.Int("http_status", int(entry.HttpStatus.Int64)),
 		slog.Duration("elapsed", entry.Elapsed))
