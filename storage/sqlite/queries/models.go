@@ -15,4 +15,5 @@ type Series struct {
 	Status     string
 	HttpStatus sql.NullInt64
 	Elapsed    int64
+	Latency    sql.NullInt64
 }

@@ -48,4 +48,5 @@ type PulseEntry struct {
 	Status     ServiceStatus
 	HttpStatus null.Int
 	Elapsed    time.Duration
+	Latency    null.Int
 }

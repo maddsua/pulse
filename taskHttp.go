@@ -81,47 +81,47 @@ func (this *httpProbeTask) Do(ctx context.Context, storage Storage) error {
 
 	resp, err := http.DefaultClient.Do(this.req.Clone(ctx))
 	if err != nil {
-
-		next := PulseEntry{
+		return this.dispatchEntry(storage, PulseEntry{
 			Label:   this.label,
 			Time:    started,
 			Status:  ServiceStatusDown,
 			Elapsed: time.Since(started),
-		}
-
-		this.debugLogEntry(&next, 0)
-
-		return storage.Push(next)
+		})
 	}
 
 	defer resp.Body.Close()
 
-	next := PulseEntry{
-		Label:      this.label,
-		Time:       started,
-		Status:     serviceStatusFromHttp(resp.StatusCode),
-		HttpStatus: null.IntFrom(int64(resp.StatusCode)),
-		Elapsed:    time.Since(started),
+	if !this.isOkStatus(resp.StatusCode) {
+		return this.dispatchEntry(storage, PulseEntry{
+			Label:      this.label,
+			Time:       started,
+			Status:     ServiceStatusDown,
+			HttpStatus: null.IntFrom(int64(resp.StatusCode)),
+			Elapsed:    time.Since(started),
+		})
 	}
 
-	this.debugLogEntry(&next, resp.StatusCode)
-
-	return storage.Push(next)
+	return this.dispatchEntry(storage, PulseEntry{
+		Label:      this.label,
+		Time:       started,
+		Status:     ServiceStatusUp,
+		HttpStatus: null.IntFrom(int64(resp.StatusCode)),
+		Elapsed:    time.Since(started),
+		Latency:    null.IntFrom(time.Since(started).Milliseconds()),
+	})
 }
 
-func (this *httpProbeTask) debugLogEntry(entry *PulseEntry, httpStatus int) {
+func (this *httpProbeTask) dispatchEntry(storage Storage, entry PulseEntry) error {
+
 	slog.Debug("Http probe: Update",
 		slog.String("label", this.label),
 		slog.String("status", entry.Status.String()),
-		slog.Int("http_status", httpStatus),
+		slog.Int("http_status", int(entry.HttpStatus.Int64)),
 		slog.Duration("elapsed", entry.Elapsed))
+
+	return storage.Push(entry)
 }
 
-func serviceStatusFromHttp(statusCode int) ServiceStatus {
-
-	if statusCode >= http.StatusOK && statusCode < http.StatusBadRequest {
-		return ServiceStatusUp
-	}
-
-	return ServiceStatusDown
+func (this *httpProbeTask) isOkStatus(statusCode int) bool {
+	return statusCode >= http.StatusOK && statusCode < http.StatusBadRequest
 }

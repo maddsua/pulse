@@ -12,7 +12,7 @@ import (
 )
 
 const getSeriesRange = `-- name: GetSeriesRange :many
-select id, time, label, status, http_status, elapsed from series
+select id, time, label, status, http_status, elapsed_ms, latency from series
 where $1 >= time
 	and $2 <= time
 `
@@ -37,7 +37,8 @@ func (q *Queries) GetSeriesRange(ctx context.Context, arg GetSeriesRangeParams) 
 			&i.Label,
 			&i.Status,
 			&i.HttpStatus,
-			&i.Elapsed,
+			&i.ElapsedMs,
+			&i.Latency,
 		); err != nil {
 			return nil, err
 		}
@@ -58,13 +59,15 @@ insert into series (
 	label,
 	status,
 	http_status,
-	elapsed
+	elapsed_ms,
+	latency
 ) values (
 	$1,
 	$2,
 	$3,
 	$4,
-	$5
+	$5,
+	$6
 )
 `
 
@@ -73,7 +76,8 @@ type InsertSeriesParams struct {
 	Label      string
 	Status     string
 	HttpStatus sql.NullInt16
-	Elapsed    int64
+	ElapsedMs  int64
+	Latency    sql.NullInt64
 }
 
 func (q *Queries) InsertSeries(ctx context.Context, arg InsertSeriesParams) error {
@@ -82,7 +86,8 @@ func (q *Queries) InsertSeries(ctx context.Context, arg InsertSeriesParams) erro
 		arg.Label,
 		arg.Status,
 		arg.HttpStatus,
-		arg.Elapsed,
+		arg.ElapsedMs,
+		arg.Latency,
 	)
 	return err
 }

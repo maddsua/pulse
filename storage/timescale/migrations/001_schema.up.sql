@@ -4,5 +4,6 @@ create table series (
 	label text not null,
 	status text not null,
 	http_status int2,
-	elapsed int8 not null
+	elapsed_ms int8 not null,
+	latency int8 null
 );

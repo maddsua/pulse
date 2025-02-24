@@ -91,7 +91,8 @@ func (this *sqliteStorage) Push(entry PulseEntry) error {
 		Label:      entry.Label,
 		Status:     entry.Status.String(),
 		HttpStatus: entry.HttpStatus.NullInt64,
-		Elapsed:    entry.Elapsed.Milliseconds(),
+		Elapsed:    int64(entry.Elapsed),
+		Latency:    entry.Latency.NullInt64,
 	})
 }
 
@@ -113,7 +114,8 @@ func (this *sqliteStorage) QueryRange(from time.Time, to time.Time) ([]PulseEntr
 			Label:      val.Label,
 			Status:     ParseServiceStatus(val.Status),
 			HttpStatus: null.NewInt(val.HttpStatus.Int64, val.HttpStatus.Valid),
-			Elapsed:    time.Duration(val.Elapsed) * time.Millisecond,
+			Elapsed:    time.Duration(val.Elapsed),
+			Latency:    null.Int{NullInt64: val.Latency},
 		}
 	}
 

@@ -4,13 +4,15 @@ insert into series (
 	label,
 	status,
 	http_status,
-	elapsed
+	elapsed,
+	latency
 ) values (
 	sqlc.arg(time),
 	sqlc.arg(label),
 	sqlc.arg(status),
 	sqlc.arg(http_status),
-	sqlc.arg(elapsed)
+	sqlc.arg(elapsed),
+	sqlc.arg(latency)
 );
 
 -- name: GetSeriesRange :many
