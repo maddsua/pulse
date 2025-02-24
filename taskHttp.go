@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/guregu/null"
+	"github.com/maddsua/pulse/storage"
 )
 
 func NewHttpTask(label string, opts HttpProbeConfig) (*httpProbeTask, error) {
@@ -65,7 +66,7 @@ func (this *httpProbeTask) Ready() bool {
 	return !this.locked && time.Now().After(this.nextRun)
 }
 
-func (this *httpProbeTask) Do(ctx context.Context, storage Storage) error {
+func (this *httpProbeTask) Do(ctx context.Context, storageDriver storage.Storage) error {
 
 	this.locked = true
 
@@ -81,10 +82,10 @@ func (this *httpProbeTask) Do(ctx context.Context, storage Storage) error {
 
 	resp, err := http.DefaultClient.Do(this.req.Clone(ctx))
 	if err != nil {
-		return this.dispatchEntry(storage, PulseEntry{
+		return this.dispatchEntry(storageDriver, storage.PulseEntry{
 			Label:     this.label,
 			Time:      started,
-			Status:    ServiceStatusDown,
+			Status:    storage.ServiceStatusDown,
 			Elapsed:   time.Since(started),
 			LatencyMs: -1,
 		})
@@ -93,34 +94,34 @@ func (this *httpProbeTask) Do(ctx context.Context, storage Storage) error {
 	defer resp.Body.Close()
 
 	if !this.isOkStatus(resp.StatusCode) {
-		return this.dispatchEntry(storage, PulseEntry{
+		return this.dispatchEntry(storageDriver, storage.PulseEntry{
 			Label:      this.label,
 			Time:       started,
-			Status:     ServiceStatusDown,
+			Status:     storage.ServiceStatusDown,
 			HttpStatus: null.IntFrom(int64(resp.StatusCode)),
 			Elapsed:    time.Since(started),
 			LatencyMs:  -1,
 		})
 	}
 
-	return this.dispatchEntry(storage, PulseEntry{
+	return this.dispatchEntry(storageDriver, storage.PulseEntry{
 		Label:      this.label,
 		Time:       started,
-		Status:     ServiceStatusUp,
+		Status:     storage.ServiceStatusUp,
 		HttpStatus: null.IntFrom(int64(resp.StatusCode)),
 		Elapsed:    time.Since(started),
 		LatencyMs:  int(time.Since(started).Milliseconds()),
 	})
 }
 
-func (this *httpProbeTask) dispatchEntry(storage Storage, entry PulseEntry) error {
+func (this *httpProbeTask) dispatchEntry(storageDriver storage.Storage, entry storage.PulseEntry) error {
 
 	slog.Debug("upd http "+this.label,
 		slog.String("status", entry.Status.String()),
 		slog.Int("http_status", int(entry.HttpStatus.Int64)),
 		slog.Duration("elapsed", entry.Elapsed))
 
-	return storage.Push(entry)
+	return storageDriver.Push(entry)
 }
 
 func (this *httpProbeTask) isOkStatus(statusCode int) bool {

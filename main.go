@@ -16,6 +16,9 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
+	"github.com/maddsua/pulse/storage"
+	sqlite_storage "github.com/maddsua/pulse/storage/sqlite"
+	timescale_storage "github.com/maddsua/pulse/storage/timescale"
 	"gopkg.in/yaml.v3"
 )
 
@@ -59,13 +62,13 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	var storage Storage
+	var storage storage.Storage
 
 	if val := os.Getenv("DATABASE_URL"); val != "" {
 
 		slog.Info("$DATABASE_URL is provided, overriding the default storage driver")
 
-		driver, err := NewTimescaleStorage(val)
+		driver, err := timescale_storage.NewTimescaleStorage(val)
 		if err != nil {
 			slog.Error("Failed to initialize timescale storage",
 				slog.String("err", err.Error()))
@@ -75,7 +78,7 @@ func main() {
 
 	} else {
 
-		driver, err := NewSqliteStorage(*flagDataDir)
+		driver, err := sqlite_storage.NewSqliteStorage(*flagDataDir)
 		if err != nil {
 			slog.Error("Failed to initialize sqlite3 storage",
 				slog.String("err", err.Error()))

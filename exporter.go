@@ -6,10 +6,12 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
+
+	"github.com/maddsua/pulse/storage"
 )
 
 type SeriesExporter struct {
-	Storage Storage
+	Storage storage.Storage
 }
 
 func (this *SeriesExporter) ServeHTTP(wrt http.ResponseWriter, req *http.Request) {

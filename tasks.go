@@ -4,19 +4,21 @@ import (
 	"context"
 	"log/slog"
 	"time"
+
+	"github.com/maddsua/pulse/storage"
 )
 
 type ProbeTask interface {
 	Ready() bool
 	Label() string
 	Interval() time.Duration
-	Do(ctx context.Context, storage Storage) error
+	Do(ctx context.Context, storage storage.Storage) error
 }
 
 type TaskHost struct {
 	Context context.Context
 	Tasks   []ProbeTask
-	Storage Storage
+	Storage storage.Storage
 	ticker  *time.Ticker
 }
 

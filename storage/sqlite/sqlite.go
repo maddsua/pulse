@@ -1,4 +1,4 @@
-package main
+package sqlite
 
 import (
 	"context"
@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/guregu/null"
+	"github.com/maddsua/pulse/storage"
 	"github.com/maddsua/pulse/storage/sqlite/queries"
 	_ "github.com/mattn/go-sqlite3"
 
@@ -21,8 +22,8 @@ import (
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 )
 
-//go:embed storage/sqlite/migrations/*
-var sqliteMigfs embed.FS
+//go:embed migrations/*
+var migfs embed.FS
 
 func NewSqliteStorage(path string) (*sqliteStorage, error) {
 
@@ -85,7 +86,7 @@ func (this *sqliteStorage) Close() error {
 	return this.db.Close()
 }
 
-func (this *sqliteStorage) Push(entry PulseEntry) error {
+func (this *sqliteStorage) Push(entry storage.PulseEntry) error {
 	return this.queries.InsertSeries(context.Background(), queries.InsertSeriesParams{
 		Time:       entry.Time.UnixNano(),
 		Label:      entry.Label,
@@ -96,7 +97,7 @@ func (this *sqliteStorage) Push(entry PulseEntry) error {
 	})
 }
 
-func (this *sqliteStorage) QueryRange(from time.Time, to time.Time) ([]PulseEntry, error) {
+func (this *sqliteStorage) QueryRange(from time.Time, to time.Time) ([]storage.PulseEntry, error) {
 
 	entries, err := this.queries.GetSeriesRange(context.Background(), queries.GetSeriesRangeParams{
 		RangeFrom: from.UnixNano(),
@@ -106,13 +107,13 @@ func (this *sqliteStorage) QueryRange(from time.Time, to time.Time) ([]PulseEntr
 		return nil, err
 	}
 
-	result := make([]PulseEntry, len(entries))
+	result := make([]storage.PulseEntry, len(entries))
 	for idx, val := range entries {
-		result[idx] = PulseEntry{
+		result[idx] = storage.PulseEntry{
 			ID:         null.IntFrom(val.ID),
 			Time:       time.Unix(0, val.Time),
 			Label:      val.Label,
-			Status:     ParseServiceStatus(val.Status),
+			Status:     storage.ParseServiceStatus(val.Status),
 			HttpStatus: null.NewInt(val.HttpStatus.Int64, val.HttpStatus.Valid),
 			Elapsed:    time.Duration(val.Elapsed),
 			LatencyMs:  int(val.Latency),
@@ -124,7 +125,7 @@ func (this *sqliteStorage) QueryRange(from time.Time, to time.Time) ([]PulseEntr
 
 func (this *sqliteStorage) migrate(db *sql.DB) error {
 
-	migfs, err := iofs.New(sqliteMigfs, "storage/sqlite/migrations")
+	migfs, err := iofs.New(migfs, "migrations")
 	if err != nil {
 		return err
 	}
