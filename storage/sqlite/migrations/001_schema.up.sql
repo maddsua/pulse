@@ -5,5 +5,5 @@ create table series (
 	status text not null,
 	http_status integer,
 	elapsed integer not null,
-	latency integer
+	latency integer not null
 );

@@ -82,10 +82,11 @@ func (this *httpProbeTask) Do(ctx context.Context, storage Storage) error {
 	resp, err := http.DefaultClient.Do(this.req.Clone(ctx))
 	if err != nil {
 		return this.dispatchEntry(storage, PulseEntry{
-			Label:   this.label,
-			Time:    started,
-			Status:  ServiceStatusDown,
-			Elapsed: time.Since(started),
+			Label:     this.label,
+			Time:      started,
+			Status:    ServiceStatusDown,
+			Elapsed:   time.Since(started),
+			LatencyMs: -1,
 		})
 	}
 
@@ -98,6 +99,7 @@ func (this *httpProbeTask) Do(ctx context.Context, storage Storage) error {
 			Status:     ServiceStatusDown,
 			HttpStatus: null.IntFrom(int64(resp.StatusCode)),
 			Elapsed:    time.Since(started),
+			LatencyMs:  -1,
 		})
 	}
 
@@ -107,7 +109,7 @@ func (this *httpProbeTask) Do(ctx context.Context, storage Storage) error {
 		Status:     ServiceStatusUp,
 		HttpStatus: null.IntFrom(int64(resp.StatusCode)),
 		Elapsed:    time.Since(started),
-		Latency:    null.IntFrom(time.Since(started).Milliseconds()),
+		LatencyMs:  int(time.Since(started).Milliseconds()),
 	})
 }
 

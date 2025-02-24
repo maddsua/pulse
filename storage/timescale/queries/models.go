@@ -16,5 +16,5 @@ type Series struct {
 	Status     string
 	HttpStatus sql.NullInt16
 	ElapsedMs  int64
-	Latency    sql.NullInt64
+	Latency    int32
 }

@@ -76,7 +76,7 @@ type InsertSeriesParams struct {
 	Status     string
 	HttpStatus sql.NullInt64
 	Elapsed    int64
-	Latency    sql.NullInt64
+	Latency    int64
 }
 
 func (q *Queries) InsertSeries(ctx context.Context, arg InsertSeriesParams) error {

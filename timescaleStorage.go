@@ -64,7 +64,7 @@ func (this *timescaleStorage) Push(entry PulseEntry) error {
 		Status:     entry.Status.String(),
 		HttpStatus: sql.NullInt16{Int16: int16(entry.HttpStatus.Int64), Valid: entry.HttpStatus.Valid},
 		ElapsedMs:  entry.Elapsed.Milliseconds(),
-		Latency:    entry.Latency.NullInt64,
+		Latency:    int32(entry.LatencyMs),
 	})
 }
 
@@ -87,7 +87,7 @@ func (this *timescaleStorage) QueryRange(from time.Time, to time.Time) ([]PulseE
 			Status:     ParseServiceStatus(val.Status),
 			HttpStatus: null.NewInt(int64(val.HttpStatus.Int16), val.HttpStatus.Valid),
 			Elapsed:    time.Duration(val.ElapsedMs) * time.Millisecond,
-			Latency:    null.Int{NullInt64: val.Latency},
+			LatencyMs:  int(val.Latency),
 		}
 	}
 
