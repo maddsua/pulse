@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/guregu/null"
 	_ "github.com/lib/pq"
 	"github.com/maddsua/pulse/storage/timescale/queries"
 	_ "github.com/mattn/go-sqlite3"
@@ -58,10 +59,11 @@ func (this *timescaleStorage) Close() error {
 
 func (this *timescaleStorage) Push(entry PulseEntry) error {
 	return this.queries.InsertSeries(context.Background(), queries.InsertSeriesParams{
-		Time:    entry.Time,
-		Label:   entry.Label,
-		Status:  int16(entry.Status),
-		Elapsed: entry.Elapsed.Milliseconds(),
+		Time:       entry.Time,
+		Label:      entry.Label,
+		Status:     entry.Status.String(),
+		HttpStatus: sql.NullInt16{Int16: int16(entry.HttpStatus.Int64), Valid: entry.HttpStatus.Valid},
+		Elapsed:    entry.Elapsed.Milliseconds(),
 	})
 }
 
@@ -78,11 +80,12 @@ func (this *timescaleStorage) QueryRange(from time.Time, to time.Time) ([]PulseE
 	result := make([]PulseEntry, len(entries))
 	for idx, val := range entries {
 		result[idx] = PulseEntry{
-			ID:      sql.NullInt64{Int64: val.ID, Valid: true},
-			Time:    val.Time,
-			Label:   val.Label,
-			Status:  ServiceStatus(val.Status),
-			Elapsed: time.Duration(val.Elapsed) * time.Millisecond,
+			ID:         null.IntFrom(val.ID),
+			Time:       val.Time,
+			Label:      val.Label,
+			Status:     ParseServiceStatus(val.Status),
+			HttpStatus: null.NewInt(int64(val.HttpStatus.Int16), val.HttpStatus.Valid),
+			Elapsed:    time.Duration(val.Elapsed) * time.Millisecond,
 		}
 	}
 

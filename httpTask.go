@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/guregu/null"
 )
 
 func NewHttpTask(label string, opts HttpProbeConfig) (*httpProbeTask, error) {
@@ -95,10 +97,11 @@ func (this *httpProbeTask) Do(ctx context.Context, storage Storage) error {
 	defer resp.Body.Close()
 
 	next := PulseEntry{
-		Label:   this.label,
-		Time:    started,
-		Status:  serviceStatusFromHttp(resp.StatusCode),
-		Elapsed: time.Since(started),
+		Label:      this.label,
+		Time:       started,
+		Status:     serviceStatusFromHttp(resp.StatusCode),
+		HttpStatus: null.IntFrom(int64(resp.StatusCode)),
+		Elapsed:    time.Since(started),
 	}
 
 	this.debugLogEntry(&next, resp.StatusCode)

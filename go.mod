@@ -6,6 +6,9 @@ require github.com/mattn/go-sqlite3 v1.14.24
 
 require (
 	github.com/golang-migrate/migrate/v4 v4.18.2
+	github.com/guregu/null v4.0.0+incompatible
+	github.com/joho/godotenv v1.5.1
+	github.com/lib/pq v1.10.9
 	github.com/sqlc-dev/sqlc v1.28.0
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -29,8 +32,6 @@ require (
 	github.com/jackc/pgx/v5 v5.7.2 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
-	github.com/joho/godotenv v1.5.1 // indirect
-	github.com/lib/pq v1.10.9 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/ncruces/go-strftime v0.1.9 // indirect
 	github.com/pganalyze/pg_query_go/v5 v5.1.0 // indirect

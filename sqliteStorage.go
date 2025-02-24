@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/guregu/null"
 	"github.com/maddsua/pulse/storage/sqlite/queries"
 	_ "github.com/mattn/go-sqlite3"
 
@@ -86,10 +87,11 @@ func (this *sqliteStorage) Close() error {
 
 func (this *sqliteStorage) Push(entry PulseEntry) error {
 	return this.queries.InsertSeries(context.Background(), queries.InsertSeriesParams{
-		Time:    entry.Time.UnixNano(),
-		Label:   entry.Label,
-		Status:  int64(entry.Status),
-		Elapsed: entry.Elapsed.Milliseconds(),
+		Time:       entry.Time.UnixNano(),
+		Label:      entry.Label,
+		Status:     entry.Status.String(),
+		HttpStatus: entry.HttpStatus.NullInt64,
+		Elapsed:    entry.Elapsed.Milliseconds(),
 	})
 }
 
@@ -106,11 +108,12 @@ func (this *sqliteStorage) QueryRange(from time.Time, to time.Time) ([]PulseEntr
 	result := make([]PulseEntry, len(entries))
 	for idx, val := range entries {
 		result[idx] = PulseEntry{
-			ID:      sql.NullInt64{Int64: val.ID, Valid: true},
-			Time:    time.Unix(0, val.Time),
-			Label:   val.Label,
-			Status:  ServiceStatus(val.Status),
-			Elapsed: time.Duration(val.Elapsed) * time.Millisecond,
+			ID:         null.IntFrom(val.ID),
+			Time:       time.Unix(0, val.Time),
+			Label:      val.Label,
+			Status:     ParseServiceStatus(val.Status),
+			HttpStatus: null.NewInt(val.HttpStatus.Int64, val.HttpStatus.Valid),
+			Elapsed:    time.Duration(val.Elapsed) * time.Millisecond,
 		}
 	}
 

@@ -61,7 +61,7 @@ func main() {
 
 	if val := os.Getenv("DATABASE_URL"); val != "" {
 
-		slog.Info("$DATABASE_URL is provided, overriding the default sqlite3 storage driver")
+		slog.Info("$DATABASE_URL is provided, overriding the default storage driver")
 
 		driver, err := NewTimescaleStorage(val)
 		if err != nil {

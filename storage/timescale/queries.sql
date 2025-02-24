@@ -3,11 +3,13 @@ insert into series (
 	time,
 	label,
 	status,
+	http_status,
 	elapsed
 ) values (
 	sqlc.arg(time),
 	sqlc.arg(label),
 	sqlc.arg(status),
+	sqlc.arg(http_status),
 	sqlc.arg(elapsed)
 );
 

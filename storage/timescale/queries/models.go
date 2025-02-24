@@ -5,13 +5,15 @@
 package queries
 
 import (
+	"database/sql"
 	"time"
 )
 
 type Series struct {
-	ID      int64
-	Time    time.Time
-	Label   string
-	Status  int16
-	Elapsed int64
+	ID         int64
+	Time       time.Time
+	Label      string
+	Status     string
+	HttpStatus sql.NullInt16
+	Elapsed    int64
 }

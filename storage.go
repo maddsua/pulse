@@ -1,8 +1,9 @@
 package main
 
 import (
-	"database/sql"
 	"time"
+
+	"github.com/guregu/null"
 )
 
 type Storage interface {
@@ -14,25 +15,37 @@ type Storage interface {
 type ServiceStatus int
 
 const (
-	ServiceStatusUp   = 1
-	ServiceStatusDown = 0
+	ServiceStatusUp         = 1
+	ServiceStatusDown       = 2
+	ServiceStatusUpString   = "up"
+	ServiceStatusDownString = "down"
 )
 
 func (this ServiceStatus) String() string {
 	switch this {
 	case ServiceStatusUp:
-		return "up"
+		return ServiceStatusUpString
 	case ServiceStatusDown:
-		return "down"
+		return ServiceStatusDownString
 	default:
 		return ""
 	}
 }
 
+func ParseServiceStatus(token string) ServiceStatus {
+	switch token {
+	case ServiceStatusUpString:
+		return ServiceStatusUp
+	default:
+		return ServiceStatusDown
+	}
+}
+
 type PulseEntry struct {
-	ID      sql.NullInt64
-	Time    time.Time
-	Label   string
-	Status  ServiceStatus
-	Elapsed time.Duration
+	ID         null.Int
+	Time       time.Time
+	Label      string
+	Status     ServiceStatus
+	HttpStatus null.Int
+	Elapsed    time.Duration
 }
