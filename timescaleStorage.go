@@ -61,7 +61,7 @@ func (this *timescaleStorage) Push(entry PulseEntry) error {
 		Time:    entry.Time,
 		Label:   entry.Label,
 		Status:  int16(entry.Status),
-		Elapsed: int64(entry.Elapsed),
+		Elapsed: entry.Elapsed.Milliseconds(),
 	})
 }
 
@@ -82,7 +82,7 @@ func (this *timescaleStorage) QueryRange(from time.Time, to time.Time) ([]PulseE
 			Time:    val.Time,
 			Label:   val.Label,
 			Status:  ServiceStatus(val.Status),
-			Elapsed: time.Duration(val.Elapsed),
+			Elapsed: time.Duration(val.Elapsed) * time.Millisecond,
 		}
 	}
 

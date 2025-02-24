@@ -89,7 +89,7 @@ func (this *sqliteStorage) Push(entry PulseEntry) error {
 		Time:    entry.Time.UnixNano(),
 		Label:   entry.Label,
 		Status:  int64(entry.Status),
-		Elapsed: int64(entry.Elapsed),
+		Elapsed: entry.Elapsed.Milliseconds(),
 	})
 }
 
@@ -110,7 +110,7 @@ func (this *sqliteStorage) QueryRange(from time.Time, to time.Time) ([]PulseEntr
 			Time:    time.Unix(0, val.Time),
 			Label:   val.Label,
 			Status:  ServiceStatus(val.Status),
-			Elapsed: time.Duration(val.Elapsed),
+			Elapsed: time.Duration(val.Elapsed) * time.Millisecond,
 		}
 	}
 
