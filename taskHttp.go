@@ -87,11 +87,18 @@ func (this *httpProbeTask) Do(ctx context.Context, storageDriver storage.Storage
 
 	resp, err := http.DefaultClient.Do(this.req.Clone(ctx))
 	if err != nil {
+
+		elapsed := time.Since(started)
+
+		slog.Debug("upd http request failed:",
+			slog.String("err", err.Error()),
+			slog.Duration("after", elapsed))
+
 		return this.dispatchEntry(storageDriver, storage.PulseEntry{
 			Label:   this.label,
 			Time:    started,
 			Status:  storage.ServiceStatusDown,
-			Elapsed: time.Since(started),
+			Elapsed: elapsed,
 			//	This is only needed to indicate a server error status,
 			//	which is a higher value than any of the actual valid http statues.
 			//	The number itself is taken from websocket close codes (1012/Service Restart)
