@@ -14,7 +14,6 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/maddsua/pulse/storage"
 	"github.com/maddsua/pulse/storage/timescale/queries"
-	_ "github.com/mattn/go-sqlite3"
 
 	"github.com/golang-migrate/migrate/v4"
 	postgres_migrate "github.com/golang-migrate/migrate/v4/database/postgres"
