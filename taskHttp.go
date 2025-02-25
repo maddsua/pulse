@@ -85,7 +85,7 @@ func (this *httpProbeTask) Do(ctx context.Context, storageDriver storage.Storage
 	ctx, cancel := context.WithTimeout(ctx, this.timeout)
 	defer cancel()
 
-	resp, err := http.DefaultClient.Do(this.req.Clone(ctx))
+	resp, err := this.client.Do(this.req.Clone(ctx))
 	if err != nil {
 
 		elapsed := time.Since(started)
