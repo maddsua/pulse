@@ -31,9 +31,15 @@ func main() {
 	flagDataDir := flag.String("data", "./data", "Data directory location")
 	flag.Parse()
 
-	if *flagDebug {
+	slog.Info("Starting pulse service")
+
+	if *flagDebug || strings.ToLower(os.Getenv("LOG_LEVEL")) == "debug" {
 		slog.SetLogLoggerLevel(slog.LevelDebug)
 		slog.Debug("Enabled")
+	}
+
+	if strings.ToLower(os.Getenv("LOG_FMT")) == "json" {
+		slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
 	}
 
 	slog.Info("Config file located",
