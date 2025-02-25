@@ -88,11 +88,15 @@ func (this *httpProbeTask) Do(ctx context.Context, storageDriver storage.Storage
 	resp, err := http.DefaultClient.Do(this.req.Clone(ctx))
 	if err != nil {
 		return this.dispatchEntry(storageDriver, storage.PulseEntry{
-			Label:     this.label,
-			Time:      started,
-			Status:    storage.ServiceStatusDown,
-			Elapsed:   time.Since(started),
-			LatencyMs: -1,
+			Label:   this.label,
+			Time:    started,
+			Status:  storage.ServiceStatusDown,
+			Elapsed: time.Since(started),
+			//	This is only needed to indicate a server error status,
+			//	which is a higher value than any of the actual valid http statues.
+			//	The number itself is taken from websocket close codes (1012/Service Restart)
+			HttpStatus: null.IntFrom(1012),
+			LatencyMs:  -1,
 		})
 	}
 
