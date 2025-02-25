@@ -9,8 +9,8 @@ import (
 )
 
 type RootConfig struct {
-	Probes    map[string]ProbeConfig `yaml:"probes"`
-	Exporters ExportersConfig        `yaml:"exporters"`
+	Probes    map[string]ProbeConfig `yaml:"probes" json:"probes"`
+	Exporters ExportersConfig        `yaml:"exporters"  json:"exporters"`
 }
 
 func (this *RootConfig) Valid() error {
@@ -25,7 +25,7 @@ func (this *RootConfig) Valid() error {
 }
 
 type ProbeConfig struct {
-	Http *HttpProbeConfig `yaml:"http"`
+	Http *HttpProbeConfig `yaml:"http" json:"http"`
 }
 
 func (this *ProbeConfig) Stacks() int {
@@ -66,8 +66,8 @@ func (this *ProbeConfig) Valid() error {
 }
 
 type BaseProbeConfig struct {
-	Interval int `yaml:"interval"`
-	Timeout  int `yaml:"timeout"`
+	Interval int `yaml:"interval" json:"interval"`
+	Timeout  int `yaml:"timeout" json:"timeout"`
 }
 
 func (this *BaseProbeConfig) Valid() error {
@@ -88,9 +88,9 @@ func (this *BaseProbeConfig) Valid() error {
 }
 
 type HttpProbeConfig struct {
-	Method  HttpMethod        `yaml:"method"`
-	Url     string            `yaml:"url"`
-	Headers map[string]string `yaml:"headers"`
+	Method  HttpMethod        `yaml:"method" json:"method"`
+	Url     string            `yaml:"url" json:"url"`
+	Headers map[string]string `yaml:"headers" json:"headers"`
 	BaseProbeConfig
 }
 
@@ -125,5 +125,5 @@ func (this *HttpMethod) Valid() bool {
 }
 
 type ExportersConfig struct {
-	Series bool `yaml:"series"`
+	Series bool `yaml:"series" json:"series"`
 }
