@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"log/slog"
 	"net"
 	"net/http"
@@ -42,6 +43,9 @@ func NewHttpTask(label string, opts HttpProbeConfig) (*httpProbeTask, error) {
 		interval: time.Second * time.Duration(opts.Interval),
 		req:      req,
 		label:    label,
+		client: &http.Client{Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}},
 	}, nil
 }
 
@@ -52,6 +56,7 @@ type httpProbeTask struct {
 	timeout  time.Duration
 	interval time.Duration
 	req      *http.Request
+	client   *http.Client
 }
 
 func (this *httpProbeTask) Label() string {
