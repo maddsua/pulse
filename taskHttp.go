@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/guregu/null"
@@ -33,6 +34,14 @@ func NewHttpTask(label string, opts HttpProbeConfig) (*httpProbeTask, error) {
 
 	if opts.Headers != nil {
 		for key, val := range opts.Headers {
+
+			if strings.ToLower(key) == "host" {
+				slog.Info("Overriding request host header",
+					slog.String("for", label),
+					slog.String("to", val))
+				req.Host = val
+			}
+
 			req.Header.Set(key, val)
 		}
 	}
