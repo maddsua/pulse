@@ -1,6 +1,15 @@
-# Into
+# Intro
 
 Pulse is similar to cloudprober, but minus the cloud part. It's a standalone service that you can just run everywhere with minimal config and still get those uptime and latency metrics.
+
+## Connecting to a database
+
+By default, pulse uses an embedded storage backed up by sqlite3. That's cool for testing/debugging,
+but for production-ish use you'd want to connect it to a proper database service such as TimescaleDB or PostgreSQL.
+
+Use the `DATABASE_URL` environment variable to provide the, well, database url to use.
+
+Make sure the database user has the permission to create tables in the schema 'public'.
 
 ## Adding probes
 
@@ -26,7 +35,17 @@ cmd ["-config=/pulse.config.yml"]
 
 ## Querying the metrics
 
-Basic postgres/timescale query:
+Get metrics for the last 6 hours using just plain SQL:
+```sql
+select
+  time,
+  latency,
+  label
+from series
+where time >= now() - '6h'::interval
+```
+
+Basic postgres/timescale query with grafana postgres data source:
 ```sql
 select
   time,
