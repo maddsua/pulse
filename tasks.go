@@ -16,13 +16,12 @@ type ProbeTask interface {
 }
 
 type TaskHost struct {
-	Context context.Context
 	Tasks   []ProbeTask
 	Storage storage.Storage
 	ticker  *time.Ticker
 }
 
-func (this *TaskHost) Run() {
+func (this *TaskHost) Run(ctx context.Context) {
 
 	if this.ticker != nil {
 		panic("TaskHost.Do() called more than once")
@@ -35,7 +34,7 @@ func (this *TaskHost) Run() {
 		slog.Debug("exec "+task.Label(),
 			slog.Time("next_run", time.Now().Add(task.Interval())))
 
-		if err := task.Do(this.Context, this.Storage); err != nil {
+		if err := task.Do(ctx, this.Storage); err != nil {
 			slog.Error("Proble task error",
 				slog.String("label", task.Label()),
 				slog.String("err", err.Error()))
@@ -54,7 +53,7 @@ func (this *TaskHost) Run() {
 		select {
 		case <-this.ticker.C:
 			updateTasks()
-		case <-this.Context.Done():
+		case <-ctx.Done():
 			this.ticker.Stop()
 			return
 		}

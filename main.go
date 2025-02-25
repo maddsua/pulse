@@ -144,7 +144,7 @@ func main() {
 			Handler: serveMux,
 		}
 
-		slog.Info("Starting api server now",
+		slog.Info("Starting API server now",
 			slog.String("addr", srv.Addr))
 
 		go func() {
@@ -157,12 +157,11 @@ func main() {
 	}
 
 	taskhost := TaskHost{
-		Context: ctx,
 		Storage: storage,
 		Tasks:   tasks,
 	}
 
-	taskhost.Run()
+	taskhost.Run(ctx)
 }
 
 func loadConfigFile(path string) (*RootConfig, error) {
