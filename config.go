@@ -165,8 +165,23 @@ func (this *ProxyConfig) Valid() error {
 		}
 	}
 
-	if _, err := url.Parse(this.Url); err != nil {
+	parsedURL, err := url.Parse(this.Url)
+	if err != nil {
 		return fmt.Errorf("invalid proxy url: %s", err.Error())
+	}
+
+	switch strings.ToLower(parsedURL.Scheme) {
+	case "socks", "socks4", "socks5":
+	default:
+		return fmt.Errorf("unsupported proxy protocol")
+	}
+
+	if parsedURL.Hostname() == "" {
+		return fmt.Errorf("invalid proxy url: host name required")
+	}
+
+	if parsedURL.Port() == "" {
+		return fmt.Errorf("invalid proxy url: port required")
 	}
 
 	return nil
