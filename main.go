@@ -29,17 +29,18 @@ func main() {
 	flagDebug := flag.Bool("debug", false, "Show debug logging")
 	flagConfigFile := flag.String("config", "./pulse.config.yml", "Set config value path")
 	flagDataDir := flag.String("data", "./data", "Data directory location")
+	flagLogFmt := flag.String("logfmt", "", "Log format: json|null")
 	flag.Parse()
+
+	if strings.ToLower(os.Getenv("LOG_FMT")) == "json" || strings.ToLower(*flagLogFmt) == "json" {
+		slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
+	}
 
 	slog.Info("Starting pulse service")
 
 	if *flagDebug || strings.ToLower(os.Getenv("LOG_LEVEL")) == "debug" {
 		slog.SetLogLoggerLevel(slog.LevelDebug)
 		slog.Debug("Enabled")
-	}
-
-	if strings.ToLower(os.Getenv("LOG_FMT")) == "json" {
-		slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
 	}
 
 	slog.Info("Config file located",
