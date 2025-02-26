@@ -60,7 +60,7 @@ func NewHttpTask(label string, opts HttpProbeConfig, proxies ProxyConfigMap) (*h
 		}
 
 		proxyCfg, has := proxies[opts.Proxy]
-		if !has {
+		if !has || proxyCfg == nil {
 			return nil, errors.New("proxy tag not found")
 		}
 
