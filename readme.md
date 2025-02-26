@@ -104,10 +104,20 @@ probes:
       interval: 60
       # probe operation timeout in seconds, if the target doesn't respond in that time - it will be considered to be down
       timeout: 10
+      # optional name of the proxy to use
+      proxy: my-proxy
 
 # data export API options;
 # if no exporters are enabled, pulse won't even start the http server, as it's not needed for anything
 exporters:
   # this one enables the series endpoint
   series: true
+
+# http probe client's proxy configs
+proxies:
+  # proxy name
+  my-proxy:
+    # it's url in format socks://[username:password]@hostname:port
+    # can be set as an env variable name with a dollar sign prefix or as a plain string
+    url: $MY_PROXY_URL
 ```
