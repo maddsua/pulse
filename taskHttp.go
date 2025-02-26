@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"errors"
+	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
@@ -14,18 +16,18 @@ import (
 	"github.com/maddsua/pulse/storage"
 )
 
-func NewHttpTask(label string, opts HttpProbeConfig) (*httpProbeTask, error) {
+func NewHttpTask(label string, opts HttpProbeConfig, proxies ProxyConfigMap) (*httpProbeTask, error) {
 
-	url, err := url.Parse(opts.Url)
+	targetUrl, err := url.Parse(opts.Url)
 	if err != nil {
 		return nil, err
 	}
 
-	if _, err := net.ResolveIPAddr("ip", url.Hostname()); err != nil {
+	if _, err := net.ResolveIPAddr("ip", targetUrl.Hostname()); err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequest(string(opts.Method), url.String(), nil)
+	req, err := http.NewRequest(string(opts.Method), targetUrl.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -46,15 +48,41 @@ func NewHttpTask(label string, opts HttpProbeConfig) (*httpProbeTask, error) {
 		}
 	}
 
+	transport := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+
+	if opts.Proxy != "" {
+
+		if len(proxies) == 0 {
+			return nil, errors.New("no proxies defined in the config")
+		}
+
+		proxyCfg, has := proxies[opts.Proxy]
+		if !has || proxyCfg == nil {
+			return nil, errors.New("proxy tag not found")
+		}
+
+		proxyUrl, err := url.Parse(proxyCfg.Url)
+		if err != nil {
+			return nil, fmt.Errorf("proxy url invalid: %s", err.Error())
+		}
+
+		dialer, err := NewSocksProxyDialer(proxyUrl.Host, proxyUrl.User)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create proxy dialer: %s", err.Error())
+		}
+
+		transport.DialContext = dialer.DialContext
+	}
+
 	return &httpProbeTask{
 		nextRun:  time.Now().Add(time.Second * time.Duration(opts.Interval)),
 		timeout:  time.Second * time.Duration(opts.Timeout),
 		interval: time.Second * time.Duration(opts.Interval),
 		req:      req,
 		label:    label,
-		client: &http.Client{Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		}},
+		client:   &http.Client{Transport: transport},
 	}, nil
 }
 
@@ -104,14 +132,11 @@ func (this *httpProbeTask) Do(ctx context.Context, storageDriver storage.Storage
 			slog.Duration("after", elapsed))
 
 		return this.dispatchEntry(storageDriver, storage.PulseEntry{
-			Label:   this.label,
-			Time:    started,
-			Status:  storage.ServiceStatusDown,
-			Elapsed: elapsed,
-			//	This is only needed to indicate a server error status,
-			//	which is a higher value than any of the actual valid http statues.
-			//	The number itself is taken from websocket close codes (1012/Service Restart)
-			HttpStatus: null.IntFrom(1012),
+			Label:      this.label,
+			Time:       started,
+			Status:     storage.ServiceStatusDown,
+			Elapsed:    elapsed,
+			HttpStatus: null.IntFrom(this.connErrCode(err)),
 			LatencyMs:  -1,
 		})
 	}
@@ -151,4 +176,18 @@ func (this *httpProbeTask) dispatchEntry(storageDriver storage.Storage, entry st
 
 func (this *httpProbeTask) isOkStatus(statusCode int) bool {
 	return statusCode >= http.StatusOK && statusCode < http.StatusBadRequest
+}
+
+func (this *httpProbeTask) connErrCode(err error) int64 {
+
+	//	This is only needed to indicate a server error status,
+	//	which is a higher value than any of the actual valid http statues.
+	//	The number itself is taken from websocket close codes (1012/Service Restart)
+
+	switch {
+	case strings.HasPrefix(err.Error(), "socks connect"):
+		return 1014
+	default:
+		return 1012
+	}
 }

@@ -5,18 +5,34 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 )
 
 type RootConfig struct {
 	Probes    map[string]ProbeConfig `yaml:"probes" json:"probes"`
 	Exporters ExportersConfig        `yaml:"exporters"  json:"exporters"`
+	Proxies   ProxyConfigMap         `yaml:"proxies"  json:"proxies"`
 }
 
-func (this *RootConfig) Valid() error {
+type ProxyConfigMap map[string]*ProxyConfig
+
+func (this *RootConfig) Validate() error {
+
+	for key, val := range this.Proxies {
+
+		if val == nil {
+			delete(this.Proxies, key)
+			continue
+		}
+
+		if err := val.Validate(); err != nil {
+			return fmt.Errorf("invalid proxy '%s' config: %s", key, err.Error())
+		}
+	}
 
 	for key, val := range this.Probes {
-		if err := val.Valid(); err != nil {
+		if err := val.Validate(this.Proxies); err != nil {
 			return fmt.Errorf("invalid probe '%s' config: %s", key, err.Error())
 		}
 	}
@@ -45,7 +61,7 @@ func (this *ProbeConfig) Stacks() int {
 	return count
 }
 
-func (this *ProbeConfig) Valid() error {
+func (this *ProbeConfig) Validate(proxies ProxyConfigMap) error {
 
 	var count int
 
@@ -53,8 +69,19 @@ func (this *ProbeConfig) Valid() error {
 
 		count++
 
-		if err := this.Http.Valid(); err != nil {
+		if err := this.Http.Validate(); err != nil {
 			return fmt.Errorf("invalid http probe config: %s", err.Error())
+		}
+
+		if this.Http.Proxy != "" {
+
+			if len(proxies) == 0 {
+				return errors.New("no proxies defined in the config")
+			}
+
+			if _, has := proxies[this.Http.Proxy]; !has {
+				return fmt.Errorf("probe proxy '%s' is not defined", this.Http.Proxy)
+			}
 		}
 	}
 
@@ -70,7 +97,7 @@ type BaseProbeConfig struct {
 	Timeout  int `yaml:"timeout" json:"timeout"`
 }
 
-func (this *BaseProbeConfig) Valid() error {
+func (this *BaseProbeConfig) Validate() error {
 
 	if this.Interval == 0 {
 		this.Interval = 60
@@ -91,12 +118,13 @@ type HttpProbeConfig struct {
 	Method  HttpMethod        `yaml:"method" json:"method"`
 	Url     string            `yaml:"url" json:"url"`
 	Headers map[string]string `yaml:"headers" json:"headers"`
+	Proxy   string            `yaml:"proxy" json:"proxy"`
 	BaseProbeConfig
 }
 
-func (this *HttpProbeConfig) Valid() error {
+func (this *HttpProbeConfig) Validate() error {
 
-	if !this.Method.Valid() {
+	if !this.Method.Validate() {
 		return fmt.Errorf("invalid http method '%s'", this.Method)
 	}
 
@@ -104,7 +132,7 @@ func (this *HttpProbeConfig) Valid() error {
 		return fmt.Errorf("invalid http url '%s'", this.Url)
 	}
 
-	if err := this.BaseProbeConfig.Valid(); err != nil {
+	if err := this.BaseProbeConfig.Validate(); err != nil {
 		return fmt.Errorf("invalid prove base config '%s'", err.Error())
 	}
 
@@ -113,7 +141,7 @@ func (this *HttpProbeConfig) Valid() error {
 
 type HttpMethod string
 
-func (this *HttpMethod) Valid() bool {
+func (this *HttpMethod) Validate() bool {
 
 	if *this == "" {
 		*this = http.MethodHead
@@ -126,4 +154,42 @@ func (this *HttpMethod) Valid() bool {
 
 type ExportersConfig struct {
 	Series bool `yaml:"series" json:"series"`
+}
+
+type ProxyConfig struct {
+	Url string `yaml:"url" json:"url"`
+}
+
+func (this *ProxyConfig) Validate() error {
+
+	if strings.HasPrefix(this.Url, "$") {
+
+		url := os.Getenv(this.Url[1:])
+		if url == "" {
+			return fmt.Errorf("url variable '%s' is not defined", this.Url)
+		}
+
+		this.Url = url
+	}
+
+	parsedURL, err := url.Parse(this.Url)
+	if err != nil {
+		return fmt.Errorf("invalid proxy url: %s", err.Error())
+	}
+
+	switch strings.ToLower(parsedURL.Scheme) {
+	case "socks", "socks4", "socks5":
+	default:
+		return fmt.Errorf("unsupported proxy protocol")
+	}
+
+	if parsedURL.Hostname() == "" {
+		return fmt.Errorf("invalid proxy url: host name required")
+	}
+
+	if parsedURL.Port() == "" {
+		return fmt.Errorf("invalid proxy url: port required")
+	}
+
+	return nil
 }
