@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/guregu/null"
 	"github.com/maddsua/pulse/storage"
+	"golang.org/x/net/proxy"
 )
 
 func NewHttpTask(label string, opts HttpProbeConfig, proxies ProxyConfigMap) (*httpProbeTask, error) {
@@ -47,18 +49,39 @@ func NewHttpTask(label string, opts HttpProbeConfig, proxies ProxyConfigMap) (*h
 		}
 	}
 
+	transport := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+
 	if opts.Proxy != "" {
 
 		if len(proxies) == 0 {
 			return nil, errors.New("no proxies defined in the config")
 		}
 
-		proxy, has := proxies[opts.Proxy]
+		proxyCfg, has := proxies[opts.Proxy]
 		if !has {
 			return nil, errors.New("proxy tag not found")
 		}
 
-		//	todo: setup proxy
+		proxyUrl, _ := url.Parse(proxyCfg.Url)
+
+		var proxyAuth *proxy.Auth
+		if proxyUrl.User.Username() != "" {
+
+			proxyAuth = &proxy.Auth{User: proxyUrl.User.Username()}
+
+			if pass, has := proxyUrl.User.Password(); has {
+				proxyAuth.Password = pass
+			}
+		}
+
+		dialer, err := proxy.SOCKS5("tcp", proxyUrl.Host, proxyAuth, proxy.Direct)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create proxy dialer: %s", err.Error())
+		}
+
+		transport.Dial = dialer.Dial
 	}
 
 	return &httpProbeTask{
@@ -67,9 +90,7 @@ func NewHttpTask(label string, opts HttpProbeConfig, proxies ProxyConfigMap) (*h
 		interval: time.Second * time.Duration(opts.Interval),
 		req:      req,
 		label:    label,
-		client: &http.Client{Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		}},
+		client:   &http.Client{Transport: transport},
 	}, nil
 }
 
