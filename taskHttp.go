@@ -131,20 +131,12 @@ func (this *httpProbeTask) Do(ctx context.Context, storageDriver storage.Storage
 			slog.String("err", err.Error()),
 			slog.Duration("after", elapsed))
 
-		//	This is only needed to indicate a server error status,
-		//	which is a higher value than any of the actual valid http statues.
-		//	The number itself is taken from websocket close codes (1012/Service Restart)
-		asHttpStatus := 1012
-		if this.isProxyError(err) {
-			asHttpStatus = 1014
-		}
-
 		return this.dispatchEntry(storageDriver, storage.PulseEntry{
 			Label:      this.label,
 			Time:       started,
 			Status:     storage.ServiceStatusDown,
 			Elapsed:    elapsed,
-			HttpStatus: null.IntFrom(int64(asHttpStatus)),
+			HttpStatus: null.IntFrom(this.connErrCode(err)),
 			LatencyMs:  -1,
 		})
 	}
@@ -186,6 +178,16 @@ func (this *httpProbeTask) isOkStatus(statusCode int) bool {
 	return statusCode >= http.StatusOK && statusCode < http.StatusBadRequest
 }
 
-func (this *httpProbeTask) isProxyError(err error) bool {
-	return strings.HasPrefix(err.Error(), "socks connect")
+func (this *httpProbeTask) connErrCode(err error) int64 {
+
+	//	This is only needed to indicate a server error status,
+	//	which is a higher value than any of the actual valid http statues.
+	//	The number itself is taken from websocket close codes (1012/Service Restart)
+
+	switch {
+	case strings.HasPrefix(err.Error(), "socks connect"):
+		return 1014
+	default:
+		return 1012
+	}
 }
