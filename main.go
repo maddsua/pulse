@@ -53,7 +53,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := cfg.Valid(); err != nil {
+	if err := cfg.Validate(); err != nil {
 		slog.Error("Failed to validate config file",
 			slog.String("err", err.Error()))
 		os.Exit(1)
@@ -97,7 +97,6 @@ func main() {
 	defer storage.Close()
 
 	var serveMux *http.ServeMux
-	var srv *http.Server
 
 	if cfg.Exporters.Series {
 
@@ -106,61 +105,27 @@ func main() {
 		slog.Info("Series exporter enabled",
 			slog.String("path", handlerPath))
 
-		//	ignore, this will be used in future to add more handlers
+		exporter := &SeriesExporter{Storage: storage}
+
 		if serveMux == nil {
 			serveMux = &http.ServeMux{}
 		}
 
-		exporter := &SeriesExporter{Storage: storage}
 		serveMux.Handle(handlerPath, exporter)
 	}
 
-	go func() {
-
-		exit := make(chan os.Signal, 2)
-		signal.Notify(exit, syscall.SIGINT, syscall.SIGTERM)
-
-		<-exit
-
-		slog.Info("Shutting down...")
-
-		if srv != nil {
-			_ = srv.Shutdown(ctx)
-		}
-
-		cancel()
-	}()
-
-	slog.Info("Starting tasks now")
+	go waitForExitSignal(cancel)
 
 	if serveMux != nil {
-
-		port := os.Getenv("PORT")
-		if _, err := strconv.Atoi(port); err != nil || port == "" {
-			port = "7200"
-		}
-
-		srv := &http.Server{
-			Addr:    ":" + port,
-			Handler: serveMux,
-		}
-
-		slog.Info("Starting API server now",
-			slog.String("addr", srv.Addr))
-
-		go func() {
-			if err := srv.ListenAndServe(); err != nil && ctx.Err() == nil {
-				slog.Error("api server error",
-					slog.String("err", err.Error()))
-				os.Exit(1)
-			}
-		}()
+		go startApiServer(ctx, serveMux)
 	}
 
 	taskhost := TaskHost{
 		Storage: storage,
 		Tasks:   tasks,
 	}
+
+	slog.Info("Starting tasks now")
 
 	taskhost.Run(ctx)
 }
@@ -231,4 +196,47 @@ func createProbeTasks(cfg RootConfig) ([]ProbeTask, error) {
 	}
 
 	return tasks, nil
+}
+
+func startApiServer(ctx context.Context, mux *http.ServeMux) {
+
+	port := os.Getenv("PORT")
+	if _, err := strconv.Atoi(port); err != nil || port == "" {
+		port = "7200"
+	}
+
+	srv := &http.Server{
+		Addr:    ":" + port,
+		Handler: mux,
+	}
+
+	slog.Info("Starting API server now",
+		slog.String("addr", srv.Addr))
+
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && ctx.Err() == nil {
+			slog.Error("api server error",
+				slog.String("err", err.Error()))
+			os.Exit(1)
+		}
+	}()
+
+	<-ctx.Done()
+
+	shutdownCtx, cancelShutdownCtx := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancelShutdownCtx()
+
+	_ = srv.Shutdown(shutdownCtx)
+}
+
+func waitForExitSignal(cancel context.CancelFunc) {
+
+	exit := make(chan os.Signal, 2)
+	signal.Notify(exit, syscall.SIGINT, syscall.SIGTERM)
+
+	<-exit
+
+	slog.Info("Shutting down...")
+
+	cancel()
 }
