@@ -76,7 +76,6 @@ func NewHttpTask(label string, opts HttpProbeConfig, proxies ProxyConfigMap) (*h
 			}
 		}
 
-		//	todo: make sure proxy can reconnect
 		dialer, err := proxy.SOCKS5("tcp", proxyUrl.Host, proxyAuth, proxy.Direct)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create proxy dialer: %s", err.Error())
