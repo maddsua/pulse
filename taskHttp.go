@@ -68,7 +68,7 @@ func NewHttpTask(label string, opts HttpProbeConfig, proxies ProxyConfigMap) (*h
 			return nil, fmt.Errorf("proxy url invalid: %s", err.Error())
 		}
 
-		dialer, err := NewSocksProxyDialer(proxyUrl)
+		dialer, err := NewSocksProxyDialer(proxyUrl.Host, proxyUrl.User)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create proxy dialer: %s", err.Error())
 		}

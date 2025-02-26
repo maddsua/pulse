@@ -6,19 +6,19 @@ import (
 	"golang.org/x/net/proxy"
 )
 
-func NewSocksProxyDialer(proxyUrl *url.URL) (proxy.ContextDialer, error) {
+func NewSocksProxyDialer(host string, user *url.Userinfo) (proxy.ContextDialer, error) {
 
 	var proxyAuth *proxy.Auth
-	if proxyUrl.User.Username() != "" {
+	if user.Username() != "" {
 
-		proxyAuth = &proxy.Auth{User: proxyUrl.User.Username()}
+		proxyAuth = &proxy.Auth{User: user.Username()}
 
-		if pass, has := proxyUrl.User.Password(); has {
+		if pass, has := user.Password(); has {
 			proxyAuth.Password = pass
 		}
 	}
 
-	dialer, err := proxy.SOCKS5("tcp", proxyUrl.Host, proxyAuth, proxy.Direct)
+	dialer, err := proxy.SOCKS5("tcp", host, proxyAuth, proxy.Direct)
 	if err != nil {
 		return nil, err
 	}
