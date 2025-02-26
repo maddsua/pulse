@@ -15,18 +15,24 @@ type RootConfig struct {
 	Proxies   ProxyConfigMap         `yaml:"proxies"  json:"proxies"`
 }
 
-type ProxyConfigMap map[string]ProxyConfig
+type ProxyConfigMap map[string]*ProxyConfig
 
-func (this *RootConfig) Valid() error {
+func (this *RootConfig) Validate() error {
 
 	for key, val := range this.Proxies {
-		if err := val.Valid(); err != nil {
+
+		if val == nil {
+			delete(this.Proxies, key)
+			continue
+		}
+
+		if err := val.Validate(); err != nil {
 			return fmt.Errorf("invalid proxy '%s' config: %s", key, err.Error())
 		}
 	}
 
 	for key, val := range this.Probes {
-		if err := val.Valid(this.Proxies); err != nil {
+		if err := val.Validate(this.Proxies); err != nil {
 			return fmt.Errorf("invalid probe '%s' config: %s", key, err.Error())
 		}
 	}
@@ -55,7 +61,7 @@ func (this *ProbeConfig) Stacks() int {
 	return count
 }
 
-func (this *ProbeConfig) Valid(proxies ProxyConfigMap) error {
+func (this *ProbeConfig) Validate(proxies ProxyConfigMap) error {
 
 	var count int
 
@@ -63,7 +69,7 @@ func (this *ProbeConfig) Valid(proxies ProxyConfigMap) error {
 
 		count++
 
-		if err := this.Http.Valid(); err != nil {
+		if err := this.Http.Validate(); err != nil {
 			return fmt.Errorf("invalid http probe config: %s", err.Error())
 		}
 
@@ -91,7 +97,7 @@ type BaseProbeConfig struct {
 	Timeout  int `yaml:"timeout" json:"timeout"`
 }
 
-func (this *BaseProbeConfig) Valid() error {
+func (this *BaseProbeConfig) Validate() error {
 
 	if this.Interval == 0 {
 		this.Interval = 60
@@ -116,9 +122,9 @@ type HttpProbeConfig struct {
 	BaseProbeConfig
 }
 
-func (this *HttpProbeConfig) Valid() error {
+func (this *HttpProbeConfig) Validate() error {
 
-	if !this.Method.Valid() {
+	if !this.Method.Validate() {
 		return fmt.Errorf("invalid http method '%s'", this.Method)
 	}
 
@@ -126,7 +132,7 @@ func (this *HttpProbeConfig) Valid() error {
 		return fmt.Errorf("invalid http url '%s'", this.Url)
 	}
 
-	if err := this.BaseProbeConfig.Valid(); err != nil {
+	if err := this.BaseProbeConfig.Validate(); err != nil {
 		return fmt.Errorf("invalid prove base config '%s'", err.Error())
 	}
 
@@ -135,7 +141,7 @@ func (this *HttpProbeConfig) Valid() error {
 
 type HttpMethod string
 
-func (this *HttpMethod) Valid() bool {
+func (this *HttpMethod) Validate() bool {
 
 	if *this == "" {
 		*this = http.MethodHead
@@ -154,7 +160,7 @@ type ProxyConfig struct {
 	Url string `yaml:"url" json:"url"`
 }
 
-func (this *ProxyConfig) Valid() error {
+func (this *ProxyConfig) Validate() error {
 
 	if strings.HasPrefix(this.Url, "$") {
 
