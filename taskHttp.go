@@ -14,7 +14,6 @@ import (
 
 	"github.com/guregu/null"
 	"github.com/maddsua/pulse/storage"
-	"golang.org/x/net/proxy"
 )
 
 func NewHttpTask(label string, opts HttpProbeConfig, proxies ProxyConfigMap) (*httpProbeTask, error) {
@@ -64,24 +63,17 @@ func NewHttpTask(label string, opts HttpProbeConfig, proxies ProxyConfigMap) (*h
 			return nil, errors.New("proxy tag not found")
 		}
 
-		proxyUrl, _ := url.Parse(proxyCfg.Url)
-
-		var proxyAuth *proxy.Auth
-		if proxyUrl.User.Username() != "" {
-
-			proxyAuth = &proxy.Auth{User: proxyUrl.User.Username()}
-
-			if pass, has := proxyUrl.User.Password(); has {
-				proxyAuth.Password = pass
-			}
+		proxyUrl, err := url.Parse(proxyCfg.Url)
+		if err != nil {
+			return nil, fmt.Errorf("proxy url invalid: %s", err.Error())
 		}
 
-		dialer, err := proxy.SOCKS5("tcp", proxyUrl.Host, proxyAuth, proxy.Direct)
+		dialer, err := NewSocksProxyDialer(proxyUrl)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create proxy dialer: %s", err.Error())
 		}
 
-		transport.DialContext = dialer.(proxy.ContextDialer).DialContext
+		transport.DialContext = dialer.DialContext
 	}
 
 	return &httpProbeTask{
