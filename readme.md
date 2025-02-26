@@ -33,6 +33,24 @@ copy ./pulse.config.yml /pulse.config.yml
 cmd ["-config=/pulse.config.yml"]
 ```
 
+### Use http probes through a proxy
+
+In case you want to monitor a service that sits inside a private network,
+you can use a socks proxy to forward healthcheck requests.
+
+A sample config would look something like this:
+```yml
+probes:
+  my-private-service:
+    http:
+      url: http://10.10.10.2:80/health
+      proxy: my-vpc-proxy
+
+proxies:
+  my-vpc-proxy:
+    url: socks5://user:pass@example.com:1080
+```
+
 ## Querying the metrics
 
 Get metrics for the last 6 hours using just plain SQL:
