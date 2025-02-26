@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"log/slog"
 	"net"
 	"net/http"
@@ -14,7 +15,7 @@ import (
 	"github.com/maddsua/pulse/storage"
 )
 
-func NewHttpTask(label string, opts HttpProbeConfig) (*httpProbeTask, error) {
+func NewHttpTask(label string, opts HttpProbeConfig, proxies ProxyConfigMap) (*httpProbeTask, error) {
 
 	url, err := url.Parse(opts.Url)
 	if err != nil {
@@ -44,6 +45,20 @@ func NewHttpTask(label string, opts HttpProbeConfig) (*httpProbeTask, error) {
 
 			req.Header.Set(key, val)
 		}
+	}
+
+	if opts.Proxy != "" {
+
+		if len(proxies) == 0 {
+			return nil, errors.New("no proxies defined in the config")
+		}
+
+		proxy, has := proxies[opts.Proxy]
+		if !has {
+			return nil, errors.New("proxy tag not found")
+		}
+
+		//	todo: setup proxy
 	}
 
 	return &httpProbeTask{

@@ -213,7 +213,7 @@ func createProbeTasks(cfg RootConfig) ([]ProbeTask, error) {
 				label += "-http"
 			}
 
-			task, err := NewHttpTask(label, *item.Http)
+			task, err := NewHttpTask(label, *item.Http, cfg.Proxies)
 			if err != nil {
 				return nil, fmt.Errorf("task '%s': %s", label, err.Error())
 			}

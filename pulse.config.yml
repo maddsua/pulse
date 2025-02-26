@@ -19,3 +19,7 @@ probes:
 
 exporters:
   series: true
+
+proxies:
+  local:
+    url: socks5://localhost:1080

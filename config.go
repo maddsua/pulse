@@ -11,12 +11,21 @@ import (
 type RootConfig struct {
 	Probes    map[string]ProbeConfig `yaml:"probes" json:"probes"`
 	Exporters ExportersConfig        `yaml:"exporters"  json:"exporters"`
+	Proxies   ProxyConfigMap         `yaml:"proxies"  json:"proxies"`
 }
+
+type ProxyConfigMap map[string]ProxyConfig
 
 func (this *RootConfig) Valid() error {
 
-	for key, val := range this.Probes {
+	for key, val := range this.Proxies {
 		if err := val.Valid(); err != nil {
+			return fmt.Errorf("invalid proxy '%s' config: %s", key, err.Error())
+		}
+	}
+
+	for key, val := range this.Probes {
+		if err := val.Valid(this.Proxies); err != nil {
 			return fmt.Errorf("invalid probe '%s' config: %s", key, err.Error())
 		}
 	}
@@ -45,7 +54,7 @@ func (this *ProbeConfig) Stacks() int {
 	return count
 }
 
-func (this *ProbeConfig) Valid() error {
+func (this *ProbeConfig) Valid(proxies ProxyConfigMap) error {
 
 	var count int
 
@@ -55,6 +64,17 @@ func (this *ProbeConfig) Valid() error {
 
 		if err := this.Http.Valid(); err != nil {
 			return fmt.Errorf("invalid http probe config: %s", err.Error())
+		}
+
+		if this.Http.Proxy != "" {
+
+			if len(proxies) == 0 {
+				return errors.New("no proxies defined in the config")
+			}
+
+			if _, has := proxies[this.Http.Proxy]; !has {
+				return fmt.Errorf("probe proxy '%s' is not defined", this.Http.Proxy)
+			}
 		}
 	}
 
@@ -91,6 +111,7 @@ type HttpProbeConfig struct {
 	Method  HttpMethod        `yaml:"method" json:"method"`
 	Url     string            `yaml:"url" json:"url"`
 	Headers map[string]string `yaml:"headers" json:"headers"`
+	Proxy   string            `yaml:"proxy" json:"proxy"`
 	BaseProbeConfig
 }
 
@@ -126,4 +147,17 @@ func (this *HttpMethod) Valid() bool {
 
 type ExportersConfig struct {
 	Series bool `yaml:"series" json:"series"`
+}
+
+type ProxyConfig struct {
+	Url string `yaml:"url" json:"url"`
+}
+
+func (this *ProxyConfig) Valid() error {
+
+	if _, err := url.Parse(this.Url); err != nil {
+		return fmt.Errorf("invalid proxy url: %s", err.Error())
+	}
+
+	return nil
 }
