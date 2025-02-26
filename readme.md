@@ -79,3 +79,35 @@ exporters:
 This will enable a local http server with a path `/exporters/series` that can be used to query metrics in json format.
 
 See the [openapi.yml](./openapi.yml) for more details.
+
+## Full config reference
+
+`pulse.config.yml`:
+```yml
+# defines the list of probe tasks
+probes:
+  # each probe has to have a unique tag/key/name, whatever you want to call it
+  # this key is what you will see in the metrics
+  cloudlfare-dns:
+    # probe config specifically for the http variant
+    http:
+      # the http method to use (defaults to HEAD if not set)
+      method: GET
+      # http request url, required and that's non-negotiable
+      url: https://10.10.10.10:443/
+      # optional request headers to send;
+      # this is particularly useful to status check load balancers and proxies
+      headers:
+        # here we override the '10.10.10.10:443' request host to a site name that the proxy must serve us
+        host: example.com
+      # probe interval in seconds, so one minute in this case
+      interval: 60
+      # probe operation timeout in seconds, if the target doesn't respond in that time - it will be considered to be down
+      timeout: 10
+
+# data export API options;
+# if no exporters are enabled, pulse won't even start the http server, as it's not needed for anything
+exporters:
+  # this one enables the series endpoint
+  series: true
+```
