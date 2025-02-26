@@ -91,8 +91,7 @@ func NewHttpTask(label string, opts HttpProbeConfig, proxies ProxyConfigMap) (*h
 		interval: time.Second * time.Duration(opts.Interval),
 		req:      req,
 		label:    label,
-		//	todo: make sure we can tell client and proxy error aparat
-		client: &http.Client{Transport: transport},
+		client:   &http.Client{Transport: transport},
 	}, nil
 }
 
@@ -141,15 +140,20 @@ func (this *httpProbeTask) Do(ctx context.Context, storageDriver storage.Storage
 			slog.String("err", err.Error()),
 			slog.Duration("after", elapsed))
 
+		//	This is only needed to indicate a server error status,
+		//	which is a higher value than any of the actual valid http statues.
+		//	The number itself is taken from websocket close codes (1012/Service Restart)
+		asHttpStatus := 1012
+		if this.isProxyError(err) {
+			asHttpStatus = 1014
+		}
+
 		return this.dispatchEntry(storageDriver, storage.PulseEntry{
-			Label:   this.label,
-			Time:    started,
-			Status:  storage.ServiceStatusDown,
-			Elapsed: elapsed,
-			//	This is only needed to indicate a server error status,
-			//	which is a higher value than any of the actual valid http statues.
-			//	The number itself is taken from websocket close codes (1012/Service Restart)
-			HttpStatus: null.IntFrom(1012),
+			Label:      this.label,
+			Time:       started,
+			Status:     storage.ServiceStatusDown,
+			Elapsed:    elapsed,
+			HttpStatus: null.IntFrom(int64(asHttpStatus)),
 			LatencyMs:  -1,
 		})
 	}
@@ -189,4 +193,8 @@ func (this *httpProbeTask) dispatchEntry(storageDriver storage.Storage, entry st
 
 func (this *httpProbeTask) isOkStatus(statusCode int) bool {
 	return statusCode >= http.StatusOK && statusCode < http.StatusBadRequest
+}
+
+func (this *httpProbeTask) isProxyError(err error) bool {
+	return strings.HasPrefix(err.Error(), "socks connect")
 }
