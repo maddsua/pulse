@@ -164,11 +164,12 @@ func (this *ProxyConfig) Validate() error {
 
 	if strings.HasPrefix(this.Url, "$") {
 
-		if url := os.Getenv(this.Url[1:]); url == "" {
+		url := os.Getenv(this.Url[1:])
+		if url == "" {
 			return fmt.Errorf("url variable '%s' is not defined", this.Url)
-		} else {
-			this.Url = url
 		}
+
+		this.Url = url
 	}
 
 	parsedURL, err := url.Parse(this.Url)
