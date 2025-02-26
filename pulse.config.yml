@@ -3,7 +3,7 @@ probes:
     http:
       method: HEAD
       url: http://google.com
-    proxy: local
+      proxy: local
 
 exporters:
   series: true
