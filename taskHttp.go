@@ -19,16 +19,16 @@ import (
 
 func NewHttpTask(label string, opts HttpProbeConfig, proxies ProxyConfigMap) (*httpProbeTask, error) {
 
-	url, err := url.Parse(opts.Url)
+	targetUrl, err := url.Parse(opts.Url)
 	if err != nil {
 		return nil, err
 	}
 
-	if _, err := net.ResolveIPAddr("ip", url.Hostname()); err != nil {
+	if _, err := net.ResolveIPAddr("ip", targetUrl.Hostname()); err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequest(string(opts.Method), url.String(), nil)
+	req, err := http.NewRequest(string(opts.Method), targetUrl.String(), nil)
 	if err != nil {
 		return nil, err
 	}
