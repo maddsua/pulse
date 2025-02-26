@@ -82,8 +82,7 @@ func NewHttpTask(label string, opts HttpProbeConfig, proxies ProxyConfigMap) (*h
 			return nil, fmt.Errorf("failed to create proxy dialer: %s", err.Error())
 		}
 
-		//	todo: fix context here
-		transport.Dial = dialer.Dial
+		transport.DialContext = dialer.(proxy.ContextDialer).DialContext
 	}
 
 	return &httpProbeTask{
