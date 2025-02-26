@@ -91,7 +91,8 @@ func NewHttpTask(label string, opts HttpProbeConfig, proxies ProxyConfigMap) (*h
 		interval: time.Second * time.Duration(opts.Interval),
 		req:      req,
 		label:    label,
-		client:   &http.Client{Transport: transport},
+		//	todo: make sure we can tell client and proxy error aparat
+		client: &http.Client{Transport: transport},
 	}, nil
 }
 
