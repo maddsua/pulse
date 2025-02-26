@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 )
 
@@ -154,6 +155,15 @@ type ProxyConfig struct {
 }
 
 func (this *ProxyConfig) Valid() error {
+
+	if strings.HasPrefix(this.Url, "$") {
+
+		if url := os.Getenv(this.Url[1:]); url == "" {
+			return fmt.Errorf("url variable '%s' is not defined", this.Url)
+		} else {
+			this.Url = url
+		}
+	}
 
 	if _, err := url.Parse(this.Url); err != nil {
 		return fmt.Errorf("invalid proxy url: %s", err.Error())
