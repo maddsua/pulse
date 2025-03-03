@@ -35,7 +35,7 @@ func (this *TaskHost) Run(ctx context.Context) {
 			slog.Time("next_run", time.Now().Add(task.Interval())))
 
 		if err := task.Do(ctx, this.Storage); err != nil {
-			slog.Error("Proble task error",
+			slog.Error("Probe returned error",
 				slog.String("label", task.Label()),
 				slog.String("err", err.Error()))
 		}
