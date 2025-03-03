@@ -1,5 +1,5 @@
--- name: InsertSeries :exec
-insert into series (
+-- name: InsertUptime :exec
+insert into uptime (
 	time,
 	label,
 	status,
@@ -15,7 +15,7 @@ insert into series (
 	sqlc.arg(latency)
 );
 
--- name: GetSeriesRange :many
-select * from series
+-- name: GetUptimeSeriesRange :many
+select * from uptime
 where time >= sqlc.arg(range_from)
 	and time <= sqlc.arg(range_to);

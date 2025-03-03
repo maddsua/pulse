@@ -11,26 +11,26 @@ import (
 	"time"
 )
 
-const getSeriesRange = `-- name: GetSeriesRange :many
-select id, time, label, status, http_status, elapsed_ms, latency from series
+const getUptimeSeriesRange = `-- name: GetUptimeSeriesRange :many
+select id, time, label, status, http_status, elapsed_ms, latency from uptime
 where time >= $1
 	and time <= $2
 `
 
-type GetSeriesRangeParams struct {
+type GetUptimeSeriesRangeParams struct {
 	RangeFrom time.Time
 	RangeTo   time.Time
 }
 
-func (q *Queries) GetSeriesRange(ctx context.Context, arg GetSeriesRangeParams) ([]Series, error) {
-	rows, err := q.db.QueryContext(ctx, getSeriesRange, arg.RangeFrom, arg.RangeTo)
+func (q *Queries) GetUptimeSeriesRange(ctx context.Context, arg GetUptimeSeriesRangeParams) ([]Uptime, error) {
+	rows, err := q.db.QueryContext(ctx, getUptimeSeriesRange, arg.RangeFrom, arg.RangeTo)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Series
+	var items []Uptime
 	for rows.Next() {
-		var i Series
+		var i Uptime
 		if err := rows.Scan(
 			&i.ID,
 			&i.Time,
@@ -53,8 +53,8 @@ func (q *Queries) GetSeriesRange(ctx context.Context, arg GetSeriesRangeParams) 
 	return items, nil
 }
 
-const insertSeries = `-- name: InsertSeries :exec
-insert into series (
+const insertUptime = `-- name: InsertUptime :exec
+insert into uptime (
 	time,
 	label,
 	status,
@@ -71,7 +71,7 @@ insert into series (
 )
 `
 
-type InsertSeriesParams struct {
+type InsertUptimeParams struct {
 	Time       time.Time
 	Label      string
 	Status     string
@@ -80,8 +80,8 @@ type InsertSeriesParams struct {
 	Latency    int32
 }
 
-func (q *Queries) InsertSeries(ctx context.Context, arg InsertSeriesParams) error {
-	_, err := q.db.ExecContext(ctx, insertSeries,
+func (q *Queries) InsertUptime(ctx context.Context, arg InsertUptimeParams) error {
+	_, err := q.db.ExecContext(ctx, insertUptime,
 		arg.Time,
 		arg.Label,
 		arg.Status,

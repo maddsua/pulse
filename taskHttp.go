@@ -171,7 +171,7 @@ func (this *httpProbeTask) dispatchEntry(storageDriver storage.Storage, entry st
 		slog.Int("http_status", int(entry.HttpStatus.Int64)),
 		slog.Duration("elapsed", entry.Elapsed))
 
-	return storageDriver.Push(entry)
+	return storageDriver.PushUptime(entry)
 }
 
 func (this *httpProbeTask) isOkStatus(statusCode int) bool {

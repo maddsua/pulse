@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-type Series struct {
+type Uptime struct {
 	ID         int64
 	Time       time.Time
 	Label      string

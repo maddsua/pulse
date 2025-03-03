@@ -42,7 +42,7 @@ func (this *SeriesExporter) ServeHTTP(wrt http.ResponseWriter, req *http.Request
 		rangeTo = point
 	}
 
-	entries, err := this.Storage.QueryRange(rangeFrom, rangeTo)
+	entries, err := this.Storage.QueryUptimeRange(rangeFrom, rangeTo)
 	if err != nil {
 		slog.Error("Failed to query data for series exporter",
 			slog.String("err", err.Error()))

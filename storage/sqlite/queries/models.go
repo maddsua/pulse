@@ -8,7 +8,7 @@ import (
 	"database/sql"
 )
 
-type Series struct {
+type Uptime struct {
 	ID         int64
 	Time       int64
 	Label      string

@@ -7,8 +7,8 @@ import (
 )
 
 type Storage interface {
-	Push(entry PulseEntry) error
-	QueryRange(from time.Time, to time.Time) ([]PulseEntry, error)
+	PushUptime(entry PulseEntry) error
+	QueryUptimeRange(from time.Time, to time.Time) ([]PulseEntry, error)
 	Close() error
 }
 

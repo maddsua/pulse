@@ -86,8 +86,8 @@ func (this *sqliteStorage) Close() error {
 	return this.db.Close()
 }
 
-func (this *sqliteStorage) Push(entry storage.PulseEntry) error {
-	return this.queries.InsertSeries(context.Background(), queries.InsertSeriesParams{
+func (this *sqliteStorage) PushUptime(entry storage.PulseEntry) error {
+	return this.queries.InsertUptime(context.Background(), queries.InsertUptimeParams{
 		Time:       entry.Time.UnixNano(),
 		Label:      entry.Label,
 		Status:     entry.Status.String(),
@@ -97,9 +97,9 @@ func (this *sqliteStorage) Push(entry storage.PulseEntry) error {
 	})
 }
 
-func (this *sqliteStorage) QueryRange(from time.Time, to time.Time) ([]storage.PulseEntry, error) {
+func (this *sqliteStorage) QueryUptimeRange(from time.Time, to time.Time) ([]storage.PulseEntry, error) {
 
-	entries, err := this.queries.GetSeriesRange(context.Background(), queries.GetSeriesRangeParams{
+	entries, err := this.queries.GetUptimeSeriesRange(context.Background(), queries.GetUptimeSeriesRangeParams{
 		RangeFrom: from.UnixNano(),
 		RangeTo:   to.UnixNano(),
 	})
