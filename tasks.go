@@ -10,6 +10,7 @@ import (
 
 type ProbeTask interface {
 	Ready() bool
+	Type() string
 	Label() string
 	Interval() time.Duration
 	Do(ctx context.Context, storage storage.Storage) error
@@ -37,6 +38,7 @@ func (this *TaskHost) Run(ctx context.Context) {
 		if err := task.Do(ctx, this.Storage); err != nil {
 			slog.Error("Probe returned error",
 				slog.String("label", task.Label()),
+				slog.String("type", task.Type()),
 				slog.String("err", err.Error()))
 		}
 	}

@@ -96,6 +96,10 @@ type httpProbeTask struct {
 	client   *http.Client
 }
 
+func (this *httpProbeTask) Type() string {
+	return "http"
+}
+
 func (this *httpProbeTask) Label() string {
 	return this.label
 }
