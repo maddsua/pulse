@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -60,4 +61,39 @@ func (this *TaskHost) Run(ctx context.Context) {
 			return
 		}
 	}
+}
+
+func CreateProbeTasks(cfg RootConfig) ([]ProbeTask, error) {
+
+	var tasks []ProbeTask
+
+	for key, item := range cfg.Probes {
+
+		uptimeChecks := item.UptimeChecks()
+
+		if item.Http != nil {
+
+			label := key
+			if uptimeChecks > 1 {
+				label += "-http"
+			}
+
+			task, err := NewHttpTask(label, *item.Http, cfg.Proxies)
+			if err != nil {
+				return nil, fmt.Errorf("task '%s': %s", label, err.Error())
+			}
+
+			slog.Info("Added http probe task",
+				slog.String("label", label),
+				slog.String("method", string(item.Http.Method)),
+				slog.String("url", item.Http.Url),
+				slog.Duration("interval", task.Interval()),
+				slog.Time("next_run", time.Now().Add(task.Interval())))
+
+			tasks = append(tasks, task)
+		}
+
+	}
+
+	return tasks, nil
 }
