@@ -36,5 +36,5 @@ func aggregateUptimeEntries(entries []storage.UptimeEntry, interval time.Duratio
 }
 
 func mergeUptimeEntries(entries []storage.UptimeEntry) storage.UptimeEntry {
-	//	todo: group
+	//	todo: group by label
 }
