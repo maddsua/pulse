@@ -7,9 +7,9 @@ servers:
   - url: https://localhost/
 
 paths:
-  /exporters/series:
+  /exporters/web/uptime:
     get:
-      summary: "Get metrics"
+      summary: "Get uptime metrics"
       description: "If queried data range is unspecified, it defaults to the last 6 hours"
       parameters:
         - name: from
@@ -21,6 +21,12 @@ paths:
         - name: to
           in: query
           description: "Timeframe start end"
+          required: false
+          schema:
+            type: string
+        - name: interval
+          in: query
+          description: "Series aggregation interval"
           required: false
           schema:
             type: string

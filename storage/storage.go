@@ -7,8 +7,8 @@ import (
 )
 
 type Storage interface {
-	PushUptime(entry PulseEntry) error
-	QueryUptimeRange(from time.Time, to time.Time) ([]PulseEntry, error)
+	PushUptime(entry UptimeEntry) error
+	QueryUptimeRange(from time.Time, to time.Time) ([]UptimeEntry, error)
 	Close() error
 }
 
@@ -41,7 +41,7 @@ func ParseServiceStatus(token string) ServiceStatus {
 	}
 }
 
-type PulseEntry struct {
+type UptimeEntry struct {
 	ID         null.Int
 	Time       time.Time
 	Label      string

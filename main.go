@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
+	"github.com/maddsua/pulse/exporters"
 	"github.com/maddsua/pulse/storage"
 	sqlite_storage "github.com/maddsua/pulse/storage/sqlite"
 	timescale_storage "github.com/maddsua/pulse/storage/timescale"
@@ -94,20 +95,20 @@ func main() {
 
 	var serveMux *http.ServeMux
 
-	if cfg.Exporters.Series {
+	if cfg.Exporters.Web.Enabled {
 
-		const handlerPath = "/exporters/series"
+		const handlerPath = "/exporters/web"
 
-		slog.Info("Series exporter enabled",
+		slog.Info("Web exporter enabled",
 			slog.String("path", handlerPath))
 
-		exporter := &SeriesExporter{Storage: storage}
+		exporter := &exporters.WebExporter{Storage: storage}
 
 		if serveMux == nil {
 			serveMux = &http.ServeMux{}
 		}
 
-		serveMux.Handle(handlerPath, exporter)
+		serveMux.Handle(handlerPath, http.StripPrefix(handlerPath, exporter))
 	}
 
 	go waitForExitSignal(cancel)

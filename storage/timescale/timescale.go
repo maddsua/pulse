@@ -57,7 +57,7 @@ func (this *timescaleStorage) Close() error {
 	return this.db.Close()
 }
 
-func (this *timescaleStorage) PushUptime(entry storage.PulseEntry) error {
+func (this *timescaleStorage) PushUptime(entry storage.UptimeEntry) error {
 	return this.queries.InsertUptime(context.Background(), queries.InsertUptimeParams{
 		Time:       entry.Time,
 		Label:      entry.Label,
@@ -68,7 +68,7 @@ func (this *timescaleStorage) PushUptime(entry storage.PulseEntry) error {
 	})
 }
 
-func (this *timescaleStorage) QueryUptimeRange(from time.Time, to time.Time) ([]storage.PulseEntry, error) {
+func (this *timescaleStorage) QueryUptimeRange(from time.Time, to time.Time) ([]storage.UptimeEntry, error) {
 
 	entries, err := this.queries.GetUptimeSeriesRange(context.Background(), queries.GetUptimeSeriesRangeParams{
 		RangeFrom: from,
@@ -78,9 +78,9 @@ func (this *timescaleStorage) QueryUptimeRange(from time.Time, to time.Time) ([]
 		return nil, err
 	}
 
-	result := make([]storage.PulseEntry, len(entries))
+	result := make([]storage.UptimeEntry, len(entries))
 	for idx, val := range entries {
-		result[idx] = storage.PulseEntry{
+		result[idx] = storage.UptimeEntry{
 			ID:         null.IntFrom(val.ID),
 			Time:       val.Time,
 			Label:      val.Label,

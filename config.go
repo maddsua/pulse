@@ -189,7 +189,11 @@ func (this *HttpMethod) Validate() bool {
 }
 
 type ExportersConfig struct {
-	Series bool `yaml:"series" json:"series"`
+	Web WebExporterConfig `yaml:"web" json:"web"`
+}
+
+type WebExporterConfig struct {
+	Enabled bool `yaml:"enabled" json:"enabled"`
 }
 
 type ProxyConfig struct {

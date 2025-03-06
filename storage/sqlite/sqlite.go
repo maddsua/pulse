@@ -86,7 +86,7 @@ func (this *sqliteStorage) Close() error {
 	return this.db.Close()
 }
 
-func (this *sqliteStorage) PushUptime(entry storage.PulseEntry) error {
+func (this *sqliteStorage) PushUptime(entry storage.UptimeEntry) error {
 	return this.queries.InsertUptime(context.Background(), queries.InsertUptimeParams{
 		Time:       entry.Time.UnixNano(),
 		Label:      entry.Label,
@@ -97,7 +97,7 @@ func (this *sqliteStorage) PushUptime(entry storage.PulseEntry) error {
 	})
 }
 
-func (this *sqliteStorage) QueryUptimeRange(from time.Time, to time.Time) ([]storage.PulseEntry, error) {
+func (this *sqliteStorage) QueryUptimeRange(from time.Time, to time.Time) ([]storage.UptimeEntry, error) {
 
 	entries, err := this.queries.GetUptimeSeriesRange(context.Background(), queries.GetUptimeSeriesRangeParams{
 		RangeFrom: from.UnixNano(),
@@ -107,9 +107,9 @@ func (this *sqliteStorage) QueryUptimeRange(from time.Time, to time.Time) ([]sto
 		return nil, err
 	}
 
-	result := make([]storage.PulseEntry, len(entries))
+	result := make([]storage.UptimeEntry, len(entries))
 	for idx, val := range entries {
-		result[idx] = storage.PulseEntry{
+		result[idx] = storage.UptimeEntry{
 			ID:         null.IntFrom(val.ID),
 			Time:       time.Unix(0, val.Time),
 			Label:      val.Label,
