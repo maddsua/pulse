@@ -51,5 +51,47 @@ func mergeLabeledUptimeEntries(entries []storage.UptimeEntry) []storage.UptimeEn
 }
 
 func mergeUptimeEntries(entries []storage.UptimeEntry) storage.UptimeEntry {
-	//	todo: group data
+
+	//	todo: rewrite this shit; it looks horrific
+
+	var latency int
+	var elapsed time.Duration
+
+	var maxStatusN int
+	var maxStatusKey int
+
+	statuses := map[int]int{}
+
+	var maxHttpStatusN int
+	var maxHttpStatusKey int
+
+	httpStatuses := map[int]int{}
+
+	for _, entry := range entries {
+
+		if latency >= 0 {
+			latency += entry.LatencyMs
+		}
+
+		elapsed += entry.Elapsed
+
+		if entry.HttpStatus.Valid {
+			key := int(entry.HttpStatus.Int64)
+			statuses[key] = statuses[key] + 1
+		}
+
+		key := int(entry.Status)
+		httpStatuses[key] = httpStatuses[key] + 1
+	}
+
+	result := storage.UptimeEntry{
+		Elapsed: (elapsed / time.Duration(len(entries))),
+		Status:  storage.ServiceStatus(maxHttpStatusKey),
+	}
+
+	if latency >= 0 {
+		result.LatencyMs = (latency / len(entries))
+	}
+
+	return result
 }
