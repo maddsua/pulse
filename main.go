@@ -97,12 +97,12 @@ func main() {
 
 	if cfg.Exporters.Web.Enabled {
 
-		const handlerPath = "/exporters/web"
+		handlerPath := PrefixPath("/exporters/web")
 
 		slog.Info("Web exporter enabled",
-			slog.String("path", handlerPath))
+			slog.String("path", handlerPath.String()))
 
-		serveMux.Handle(handlerPath, http.StripPrefix(handlerPath, &exporters.WebExporter{
+		serveMux.Handle(handlerPath.Path(), http.StripPrefix(handlerPath.String(), &exporters.WebExporter{
 			Storage: storage,
 		}))
 	}
@@ -165,4 +165,14 @@ func waitForExitSignal(cancel context.CancelFunc) {
 	slog.Info("Shutting down...")
 
 	cancel()
+}
+
+type PrefixPath string
+
+func (this PrefixPath) Path() string {
+	return string(this) + "/"
+}
+
+func (this PrefixPath) String() string {
+	return string(this)
 }
