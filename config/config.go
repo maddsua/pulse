@@ -123,6 +123,15 @@ func (this *ProbeConfig) Validate(proxies ProxyConfigMap) error {
 		}
 	}
 
+	if this.Tls != nil {
+
+		count++
+
+		if err := this.Tls.Validate(); err != nil {
+			return fmt.Errorf("invalid tls probe config: %s", err.Error())
+		}
+	}
+
 	if count == 0 {
 		return errors.New("no probe target configs")
 	}
@@ -162,16 +171,16 @@ type HttpProbeConfig struct {
 
 func (this *HttpProbeConfig) Validate() error {
 
+	if err := this.BaseProbeConfig.Validate(); err != nil {
+		return fmt.Errorf("invalid probe base config '%s'", err.Error())
+	}
+
 	if !this.Method.Validate() {
 		return fmt.Errorf("invalid http method '%s'", this.Method)
 	}
 
 	if _, err := url.Parse(this.Url); err != nil {
 		return fmt.Errorf("invalid http url '%s'", this.Url)
-	}
-
-	if err := this.BaseProbeConfig.Validate(); err != nil {
-		return fmt.Errorf("invalid prove base config '%s'", err.Error())
 	}
 
 	return nil
@@ -261,4 +270,17 @@ type TlsProbeConfig struct {
 	BaseProbeConfig
 	Host  string `yaml:"host" json:"host"`
 	Proxy string `yaml:"proxy" json:"proxy"`
+}
+
+func (this *TlsProbeConfig) Validate() error {
+
+	if err := this.BaseProbeConfig.Validate(); err != nil {
+		return fmt.Errorf("invalid probe base config '%s'", err.Error())
+	}
+
+	if this.Host = strings.TrimSpace(this.Host); this.Host == "" {
+		return errors.New("tls probe host is empty")
+	}
+
+	return nil
 }
