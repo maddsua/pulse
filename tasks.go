@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/maddsua/pulse/config"
+	"github.com/maddsua/pulse/probes"
 	"github.com/maddsua/pulse/storage"
 )
 
@@ -70,7 +72,7 @@ func (this *TaskHost) Run(ctx context.Context) {
 	}
 }
 
-func CreateProbeTasks(cfg RootConfig) ([]ProbeTask, error) {
+func CreateProbeTasks(cfg config.RootConfig) ([]ProbeTask, error) {
 
 	var tasks []ProbeTask
 
@@ -85,7 +87,7 @@ func CreateProbeTasks(cfg RootConfig) ([]ProbeTask, error) {
 				label += "-http"
 			}
 
-			task, err := NewHttpTask(label, *item.Http, cfg.Proxies)
+			task, err := probes.NewHttpProbe(label, *item.Http, cfg.Proxies)
 			if err != nil {
 				return nil, fmt.Errorf("task '%s': %s", label, err.Error())
 			}
@@ -100,6 +102,21 @@ func CreateProbeTasks(cfg RootConfig) ([]ProbeTask, error) {
 			tasks = append(tasks, task)
 		}
 
+		if item.Tls != nil {
+
+			task, err := probes.NewTlsProbe(key, *item.Tls, cfg.Proxies)
+			if err != nil {
+				return nil, fmt.Errorf("task '%s': %s", key, err.Error())
+			}
+
+			slog.Info("Added tls probe task",
+				slog.String("label", key),
+				slog.String("host", item.Tls.Host),
+				slog.Duration("interval", task.Interval()),
+				slog.Time("next_run", time.Now().Add(task.Interval())))
+
+			tasks = append(tasks, task)
+		}
 	}
 
 	return tasks, nil

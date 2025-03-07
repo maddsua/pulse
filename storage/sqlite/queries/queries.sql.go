@@ -10,6 +10,49 @@ import (
 	"database/sql"
 )
 
+const getTlsSeriesRange = `-- name: GetTlsSeriesRange :many
+select id, time, label, security, cert_subject, cert_issuer, cert_expires, cert_fingerprint from tlscert
+where time >= ?1
+	and time <= ?2
+`
+
+type GetTlsSeriesRangeParams struct {
+	RangeFrom int64
+	RangeTo   int64
+}
+
+func (q *Queries) GetTlsSeriesRange(ctx context.Context, arg GetTlsSeriesRangeParams) ([]Tlscert, error) {
+	rows, err := q.db.QueryContext(ctx, getTlsSeriesRange, arg.RangeFrom, arg.RangeTo)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Tlscert
+	for rows.Next() {
+		var i Tlscert
+		if err := rows.Scan(
+			&i.ID,
+			&i.Time,
+			&i.Label,
+			&i.Security,
+			&i.CertSubject,
+			&i.CertIssuer,
+			&i.CertExpires,
+			&i.CertFingerprint,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getUptimeSeriesRange = `-- name: GetUptimeSeriesRange :many
 select id, time, label, status, http_status, elapsed, latency from uptime
 where time >= ?1
@@ -50,6 +93,49 @@ func (q *Queries) GetUptimeSeriesRange(ctx context.Context, arg GetUptimeSeriesR
 		return nil, err
 	}
 	return items, nil
+}
+
+const insertTls = `-- name: InsertTls :exec
+insert into tlscert (
+	time,
+	label,
+	security,
+	cert_subject,
+	cert_issuer,
+	cert_expires,
+	cert_fingerprint
+) values (
+	?1,
+	?2,
+	?3,
+	?4,
+	?5,
+	?6,
+	?7
+)
+`
+
+type InsertTlsParams struct {
+	Time            int64
+	Label           string
+	Security        string
+	CertSubject     sql.NullString
+	CertIssuer      sql.NullString
+	CertExpires     sql.NullInt64
+	CertFingerprint sql.NullString
+}
+
+func (q *Queries) InsertTls(ctx context.Context, arg InsertTlsParams) error {
+	_, err := q.db.ExecContext(ctx, insertTls,
+		arg.Time,
+		arg.Label,
+		arg.Security,
+		arg.CertSubject,
+		arg.CertIssuer,
+		arg.CertExpires,
+		arg.CertFingerprint,
+	)
+	return err
 }
 
 const insertUptime = `-- name: InsertUptime :exec

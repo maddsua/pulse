@@ -86,6 +86,39 @@ func (this *sqliteStorage) Close() error {
 	return this.db.Close()
 }
 
+func (this *sqliteStorage) migrate(db *sql.DB) error {
+
+	migfs, err := iofs.New(migfs, "migrations")
+	if err != nil {
+		return err
+	}
+
+	migdb, err := sqlite_migrate.WithInstance(db, &sqlite_migrate.Config{})
+	if err != nil {
+		return err
+	}
+
+	mig, err := migrate.NewWithInstance("iofs", migfs, "sqlite3", migdb)
+	if err != nil {
+		return err
+	}
+
+	if err := mig.Up(); err != nil && err != migrate.ErrNoChange {
+		return err
+	}
+
+	version, ditry, err := mig.Version()
+	if err != nil {
+		return err
+	}
+
+	slog.Debug("Storage migrated",
+		slog.Int("version", int(version)),
+		slog.Bool("dirty", ditry))
+
+	return nil
+}
+
 func (this *sqliteStorage) PushUptime(entry storage.UptimeEntry) error {
 	return this.queries.InsertUptime(context.Background(), queries.InsertUptimeParams{
 		Time:       entry.Time.UnixNano(),
@@ -123,35 +156,46 @@ func (this *sqliteStorage) QueryUptimeRange(from time.Time, to time.Time) ([]sto
 	return result, nil
 }
 
-func (this *sqliteStorage) migrate(db *sql.DB) error {
+func (this *sqliteStorage) PushTlsEntry(entry storage.TlsSecurityEntry) error {
+	return this.queries.InsertTls(context.Background(), queries.InsertTlsParams{
+		Time:            entry.Time.UnixNano(),
+		Label:           entry.Label,
+		Security:        entry.Security,
+		CertSubject:     entry.CertSubject.NullString,
+		CertIssuer:      entry.CertIssuer.NullString,
+		CertExpires:     WrapNullTime(entry.CertExpires),
+		CertFingerprint: entry.CertFingerprint.NullString,
+	})
+}
 
-	migfs, err := iofs.New(migfs, "migrations")
+func (this *sqliteStorage) QueryTlsRange(from time.Time, to time.Time) ([]storage.TlsSecurityEntry, error) {
+
+	entries, err := this.queries.GetTlsSeriesRange(context.Background(), queries.GetTlsSeriesRangeParams{
+		RangeFrom: from.UnixNano(),
+		RangeTo:   to.UnixNano(),
+	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	migdb, err := sqlite_migrate.WithInstance(db, &sqlite_migrate.Config{})
-	if err != nil {
-		return err
+	var isSecure = func(val string) bool {
+		return strings.HasPrefix(strings.ToLower(val), "tls")
 	}
 
-	mig, err := migrate.NewWithInstance("iofs", migfs, "sqlite3", migdb)
-	if err != nil {
-		return err
+	result := make([]storage.TlsSecurityEntry, len(entries))
+	for idx, val := range entries {
+		result[idx] = storage.TlsSecurityEntry{
+			ID:              null.IntFrom(val.ID),
+			Time:            time.Unix(0, val.Time),
+			Label:           val.Label,
+			Security:        val.Security,
+			Secure:          isSecure(val.Security),
+			CertSubject:     null.String{NullString: val.CertSubject},
+			CertIssuer:      null.String{NullString: val.CertIssuer},
+			CertExpires:     null.NewTime(time.Unix(0, val.CertExpires.Int64), val.CertExpires.Valid),
+			CertFingerprint: null.String{NullString: val.CertFingerprint},
+		}
 	}
 
-	if err := mig.Up(); err != nil && err != migrate.ErrNoChange {
-		return err
-	}
-
-	version, ditry, err := mig.Version()
-	if err != nil {
-		return err
-	}
-
-	slog.Debug("Storage migrated",
-		slog.Int("version", int(version)),
-		slog.Bool("dirty", ditry))
-
-	return nil
+	return result, nil
 }

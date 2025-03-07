@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"encoding/json"
@@ -79,6 +79,7 @@ func (this *RootConfig) Validate() error {
 
 type ProbeConfig struct {
 	Http *HttpProbeConfig `yaml:"http" json:"http"`
+	Tls  *TlsProbeConfig  `yaml:"tls" json:"tls"`
 }
 
 func (this *ProbeConfig) UptimeChecks() int {
@@ -122,6 +123,15 @@ func (this *ProbeConfig) Validate(proxies ProxyConfigMap) error {
 		}
 	}
 
+	if this.Tls != nil {
+
+		count++
+
+		if err := this.Tls.Validate(); err != nil {
+			return fmt.Errorf("invalid tls probe config: %s", err.Error())
+		}
+	}
+
 	if count == 0 {
 		return errors.New("no probe target configs")
 	}
@@ -152,14 +162,18 @@ func (this *BaseProbeConfig) Validate() error {
 }
 
 type HttpProbeConfig struct {
+	BaseProbeConfig
 	Method  HttpMethod        `yaml:"method" json:"method"`
 	Url     string            `yaml:"url" json:"url"`
 	Headers map[string]string `yaml:"headers" json:"headers"`
 	Proxy   string            `yaml:"proxy" json:"proxy"`
-	BaseProbeConfig
 }
 
 func (this *HttpProbeConfig) Validate() error {
+
+	if err := this.BaseProbeConfig.Validate(); err != nil {
+		return fmt.Errorf("invalid probe base config '%s'", err.Error())
+	}
 
 	if !this.Method.Validate() {
 		return fmt.Errorf("invalid http method '%s'", this.Method)
@@ -167,10 +181,6 @@ func (this *HttpProbeConfig) Validate() error {
 
 	if _, err := url.Parse(this.Url); err != nil {
 		return fmt.Errorf("invalid http url '%s'", this.Url)
-	}
-
-	if err := this.BaseProbeConfig.Validate(); err != nil {
-		return fmt.Errorf("invalid prove base config '%s'", err.Error())
 	}
 
 	return nil
@@ -254,4 +264,22 @@ func (this *ProxyConfig) Validate() error {
 
 type TaskhostConfig struct {
 	Autorun bool `yaml:"autorun" json:"autorun"`
+}
+
+type TlsProbeConfig struct {
+	BaseProbeConfig
+	Host string `yaml:"host" json:"host"`
+}
+
+func (this *TlsProbeConfig) Validate() error {
+
+	if err := this.BaseProbeConfig.Validate(); err != nil {
+		return fmt.Errorf("invalid probe base config '%s'", err.Error())
+	}
+
+	if this.Host = strings.TrimSpace(this.Host); this.Host == "" {
+		return errors.New("tls probe host is empty")
+	}
+
+	return nil
 }

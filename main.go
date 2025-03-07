@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
+	"github.com/maddsua/pulse/config"
 	"github.com/maddsua/pulse/exporters"
 	"github.com/maddsua/pulse/storage"
 	sqlite_storage "github.com/maddsua/pulse/storage/sqlite"
@@ -43,7 +44,7 @@ func main() {
 	slog.Info("Config file located",
 		slog.String("at", *flagConfigFile))
 
-	cfg, err := LoadConfigFile(*flagConfigFile)
+	cfg, err := config.LoadConfigFile(*flagConfigFile)
 	if err != nil {
 		slog.Error("Failed to load config file",
 			slog.String("err", err.Error()))
