@@ -116,6 +116,7 @@ func main() {
 	taskhost := TaskHost{
 		Storage: storage,
 		Tasks:   tasks,
+		Autorun: cfg.Taskhost.Autorun,
 	}
 
 	slog.Info("Starting tasks now")

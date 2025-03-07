@@ -49,6 +49,7 @@ type RootConfig struct {
 	Probes    map[string]ProbeConfig `yaml:"probes" json:"probes"`
 	Exporters ExportersConfig        `yaml:"exporters"  json:"exporters"`
 	Proxies   ProxyConfigMap         `yaml:"proxies"  json:"proxies"`
+	Taskhost  TaskhostConfig         `yaml:"taskhost"  json:"taskhost"`
 }
 
 type ProxyConfigMap map[string]*ProxyConfig
@@ -249,4 +250,8 @@ func (this *ProxyConfig) Validate() error {
 	}
 
 	return nil
+}
+
+type TaskhostConfig struct {
+	Autorun bool `yaml:"autorun" json:"autorun"`
 }

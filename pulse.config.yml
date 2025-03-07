@@ -20,3 +20,6 @@ probes:
 exporters:
   web:
     enabled: true
+
+taskhost:
+  autorun: true
