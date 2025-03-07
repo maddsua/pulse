@@ -22,4 +22,4 @@ exporters:
     enabled: true
 
 taskhost:
-  autorun: true
+  autorun: false

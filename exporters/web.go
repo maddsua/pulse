@@ -88,7 +88,10 @@ func (this *WebExporter) handleUptime(wrt http.ResponseWriter, req *http.Request
 
 	wrt.Header().Set("content-type", "application/json")
 
-	if err := json.NewEncoder(wrt).Encode(result); err != nil {
+	jsonEnc := json.NewEncoder(wrt)
+	jsonEnc.SetIndent("", "  ")
+
+	if err := jsonEnc.Encode(result); err != nil {
 		slog.Error("Failed to serialize series exporter data",
 			slog.String("err", err.Error()))
 		return

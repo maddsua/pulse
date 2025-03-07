@@ -99,6 +99,8 @@ func mergeUptimeEntries(entries []storage.UptimeEntry) storage.UptimeEntry {
 	}
 
 	result := storage.UptimeEntry{
+		Time:       entries[0].Time,
+		Label:      entries[0].Label,
 		LatencyMs:  latencyAvg,
 		Elapsed:    (elapsedAvg / time.Duration(len(entries))),
 		Status:     storage.ServiceStatus(maxStatusVal),
