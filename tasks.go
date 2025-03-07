@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/maddsua/pulse/config"
+	"github.com/maddsua/pulse/probes"
 	"github.com/maddsua/pulse/storage"
 )
 
@@ -70,7 +72,7 @@ func (this *TaskHost) Run(ctx context.Context) {
 	}
 }
 
-func CreateProbeTasks(cfg RootConfig) ([]ProbeTask, error) {
+func CreateProbeTasks(cfg config.RootConfig) ([]ProbeTask, error) {
 
 	var tasks []ProbeTask
 
@@ -85,7 +87,7 @@ func CreateProbeTasks(cfg RootConfig) ([]ProbeTask, error) {
 				label += "-http"
 			}
 
-			task, err := NewHttpTask(label, *item.Http, cfg.Proxies)
+			task, err := probes.NewHttpProbe(label, *item.Http, cfg.Proxies)
 			if err != nil {
 				return nil, fmt.Errorf("task '%s': %s", label, err.Error())
 			}

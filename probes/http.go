@@ -1,4 +1,4 @@
-package main
+package probes
 
 import (
 	"context"
@@ -13,10 +13,12 @@ import (
 	"time"
 
 	"github.com/guregu/null"
+	"github.com/maddsua/pulse/config"
+	socks "github.com/maddsua/pulse/proxy"
 	"github.com/maddsua/pulse/storage"
 )
 
-func NewHttpTask(label string, opts HttpProbeConfig, proxies ProxyConfigMap) (*httpProbeTask, error) {
+func NewHttpProbe(label string, opts config.HttpProbeConfig, proxies config.ProxyConfigMap) (*httpProbe, error) {
 
 	targetUrl, err := url.Parse(opts.Url)
 	if err != nil {
@@ -68,7 +70,7 @@ func NewHttpTask(label string, opts HttpProbeConfig, proxies ProxyConfigMap) (*h
 			return nil, fmt.Errorf("proxy url invalid: %s", err.Error())
 		}
 
-		dialer, err := NewSocksProxyDialer(proxyUrl.Host, proxyUrl.User)
+		dialer, err := socks.NewSocksProxyDialer(proxyUrl.Host, proxyUrl.User)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create proxy dialer: %s", err.Error())
 		}
@@ -76,57 +78,54 @@ func NewHttpTask(label string, opts HttpProbeConfig, proxies ProxyConfigMap) (*h
 		transport.DialContext = dialer.DialContext
 	}
 
-	return &httpProbeTask{
-		nextRun:  time.Now().Add(time.Second * time.Duration(opts.Interval)),
-		timeout:  time.Second * time.Duration(opts.Timeout),
-		interval: time.Second * time.Duration(opts.Interval),
-		req:      req,
-		label:    label,
-		client:   &http.Client{Transport: transport},
+	return &httpProbe{
+		probeTask: probeTask{
+			nextRun:  time.Now().Add(time.Second * time.Duration(opts.Interval)),
+			interval: time.Second * time.Duration(opts.Interval),
+			label:    label,
+			timeout:  time.Second * time.Duration(opts.Timeout),
+		},
+		req:    req,
+		client: &http.Client{Transport: transport},
 	}, nil
 }
 
-type httpProbeTask struct {
-	nextRun  time.Time
-	locked   bool
-	label    string
-	timeout  time.Duration
-	interval time.Duration
-	req      *http.Request
-	client   *http.Client
+type httpProbe struct {
+	probeTask
+	req    *http.Request
+	client *http.Client
 }
 
-func (this *httpProbeTask) Type() string {
+func (this *httpProbe) Type() string {
 	return "http"
 }
 
-func (this *httpProbeTask) Label() string {
+func (this *httpProbe) Label() string {
 	return this.label
 }
 
-func (this *httpProbeTask) Interval() time.Duration {
+func (this *httpProbe) Interval() time.Duration {
 	return this.interval
 }
 
-func (this *httpProbeTask) Ready() bool {
+func (this *httpProbe) Ready() bool {
 	return !this.locked && time.Now().After(this.nextRun)
 }
 
-func (this *httpProbeTask) Do(ctx context.Context, storageDriver storage.Storage) error {
+func (this *httpProbe) Do(ctx context.Context, storageDriver storage.Storage) error {
 
-	this.locked = true
+	if err := this.probeTask.Lock(); err != nil {
+		return err
+	}
 
-	defer func() {
-		this.nextRun = time.Now().Add(this.interval)
-		this.locked = false
-	}()
+	defer this.probeTask.Unlock()
 
 	started := time.Now()
 
-	ctx, cancel := context.WithTimeout(ctx, this.timeout)
-	defer cancel()
+	reqCtx, cancelReq := context.WithTimeout(ctx, this.timeout)
+	defer cancelReq()
 
-	resp, err := this.client.Do(this.req.Clone(ctx))
+	resp, err := this.client.Do(this.req.Clone(reqCtx))
 	if err != nil {
 
 		elapsed := time.Since(started)
@@ -168,7 +167,7 @@ func (this *httpProbeTask) Do(ctx context.Context, storageDriver storage.Storage
 	})
 }
 
-func (this *httpProbeTask) dispatchEntry(storageDriver storage.Storage, entry storage.UptimeEntry) error {
+func (this *httpProbe) dispatchEntry(storageDriver storage.Storage, entry storage.UptimeEntry) error {
 
 	slog.Debug("upd http "+this.label,
 		slog.String("status", entry.Status.String()),
@@ -178,11 +177,11 @@ func (this *httpProbeTask) dispatchEntry(storageDriver storage.Storage, entry st
 	return storageDriver.PushUptime(entry)
 }
 
-func (this *httpProbeTask) isOkStatus(statusCode int) bool {
+func (this *httpProbe) isOkStatus(statusCode int) bool {
 	return statusCode >= http.StatusOK && statusCode < http.StatusBadRequest
 }
 
-func (this *httpProbeTask) connErrCode(err error) int64 {
+func (this *httpProbe) connErrCode(err error) int64 {
 
 	//	This is only needed to indicate a server error status,
 	//	which is a higher value than any of the actual valid http statues.
