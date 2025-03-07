@@ -1,49 +1,14 @@
 package config
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
-
-	"gopkg.in/yaml.v3"
+	"time"
 )
-
-func LoadConfigFile(path string) (*RootConfig, error) {
-
-	file, err := os.OpenFile(path, os.O_RDONLY, os.ModePerm)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open config file: %s", err.Error())
-	}
-
-	info, err := file.Stat()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get config file info: %s", err.Error())
-	}
-
-	if !info.Mode().IsRegular() {
-		return nil, errors.New("failed to read config file: config file must be a regular file")
-	}
-
-	var cfg RootConfig
-
-	if strings.HasSuffix(path, ".yml") {
-		if err := yaml.NewDecoder(file).Decode(&cfg); err != nil {
-			return nil, fmt.Errorf("failed to decode config file: %s", err.Error())
-		}
-	} else if strings.HasSuffix(path, ".json") {
-		if err := json.NewDecoder(file).Decode(&cfg); err != nil {
-			return nil, fmt.Errorf("failed to decode config file: %s", err.Error())
-		}
-	} else {
-		return nil, errors.New("unsupported config file format")
-	}
-
-	return &cfg, nil
-}
 
 type RootConfig struct {
 	Probes    map[string]ProbeConfig `yaml:"probes" json:"probes"`
@@ -140,33 +105,51 @@ func (this *ProbeConfig) Validate(proxies ProxyConfigMap) error {
 }
 
 type BaseProbeConfig struct {
-	Interval int `yaml:"interval" json:"interval"`
-	Timeout  int `yaml:"timeout" json:"timeout"`
+	CfgInterval string `yaml:"interval" json:"interval"`
+	CfgTimeout  string `yaml:"timeout" json:"timeout"`
+	interval    time.Duration
+	timeout     time.Duration
 }
 
 func (this *BaseProbeConfig) Validate() error {
 
-	if this.Interval == 0 {
-		this.Interval = 60
-	} else if this.Interval < 0 {
-		return errors.New("invalid interval value")
+	if val, err := ParseDuration(this.CfgInterval); err != nil {
+		return err
+	} else {
+		this.interval = val
 	}
 
-	if this.Timeout == 0 {
-		this.Timeout = 10
-	} else if this.Timeout < 0 {
-		return errors.New("invalid timeout value")
+	if val, err := ParseDuration(this.CfgTimeout); err != nil {
+		return err
+	} else {
+		this.timeout = val
+	}
+
+	if this.interval <= 0 {
+		this.interval = 60 * time.Second
+	}
+
+	if this.timeout <= 0 {
+		this.timeout = 10 * time.Second
 	}
 
 	return nil
 }
 
+func (this *BaseProbeConfig) Interval() time.Duration {
+	return this.interval
+}
+
+func (this *BaseProbeConfig) Timeout() time.Duration {
+	return this.timeout
+}
+
 type HttpProbeConfig struct {
-	BaseProbeConfig
-	Method  HttpMethod        `yaml:"method" json:"method"`
-	Url     string            `yaml:"url" json:"url"`
-	Headers map[string]string `yaml:"headers" json:"headers"`
-	Proxy   string            `yaml:"proxy" json:"proxy"`
+	BaseProbeConfig `yaml:",inline"`
+	Method          HttpMethod        `yaml:"method" json:"method"`
+	Url             string            `yaml:"url" json:"url"`
+	Headers         map[string]string `yaml:"headers" json:"headers"`
+	Proxy           string            `yaml:"proxy" json:"proxy"`
 }
 
 func (this *HttpProbeConfig) Validate() error {
@@ -267,8 +250,8 @@ type TaskhostConfig struct {
 }
 
 type TlsProbeConfig struct {
-	BaseProbeConfig
-	Host string `yaml:"host" json:"host"`
+	BaseProbeConfig `yaml:",inline"`
+	Host            string `yaml:"host" json:"host"`
 }
 
 func (this *TlsProbeConfig) Validate() error {
