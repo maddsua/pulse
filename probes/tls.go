@@ -39,7 +39,8 @@ func NewTlsProbe(label string, opts config.TlsProbeConfig, proxies config.ProxyC
 		},
 		host:     hostAddr,
 		hostname: hostname,
-		dialer:   &tls.Dialer{},
+		//	todo: pass proxy
+		dialer: &tls.Dialer{},
 	}, nil
 }
 
