@@ -43,11 +43,11 @@ paths:
                     time:
                       type: string
                       description: "Data point timestamp"
-                      example: "2006-01-02T15:04:05Z07:00"
+                      example: "2025-03-07T19:38:08.746+01:00"
                     label:
                       type: string
                       description: "Probe label"
-                      example: "app-name-proto"
+                      example: "google.com"
                     status:
                       type: string
                       description: "Service status string"
@@ -64,3 +64,57 @@ paths:
                       type: integer
                       description: "Service latency (>= 0 if up, otherwise == -1)"
                       example: 150
+  /exporters/web/tlscert:
+    get:
+      summary: "Get TLS cert metrics"
+      description: "If queried data range is unspecified, it defaults to the last 6 hours"
+      parameters:
+        - name: from
+          in: query
+          description: "Timeframe start point"
+          required: false
+          schema:
+            type: string
+        - name: to
+          in: query
+          description: "Timeframe start end"
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "Successful query"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    time:
+                      type: string
+                      description: "Data point timestamp"
+                      example: "2025-03-07T19:38:08.746+01:00"
+                    label:
+                      type: string
+                      description: "Probe label"
+                      example: "google.com"
+                    security:
+                      type: string
+                      description: "Service security status"
+                      example: "tls 1.3"
+                    cert_subject:
+                      type: string
+                      description: "Certificate issue subject"
+                      example: "CN=*.google.com"
+                    cert_issuer:
+                      type: string
+                      description: "Certificate issuer"
+                      example: "CN=WR2,O=Google Trust Services,C=US"
+                    cert_expires:
+                      description: "Certificate expiry timestamp"
+                      example: "2025-05-21T15:32:54.000Z"
+                    cert_fingerprint:
+                      type: string
+                      description: "Certificate sha1 fingerprint"
+                      example: "2f067cd1a347af920b67399349187666223253cb"
