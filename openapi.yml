@@ -67,7 +67,7 @@ paths:
   /exporters/web/tlscert:
     get:
       summary: "Get TLS cert metrics"
-      description: "If queried data range is unspecified, it defaults to the last 6 hours"
+      description: "If queried data range is unspecified, it defaults to the last one hour"
       parameters:
         - name: from
           in: query

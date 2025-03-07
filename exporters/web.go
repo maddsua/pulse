@@ -1,7 +1,6 @@
 package exporters
 
 import (
-	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -20,6 +19,7 @@ func (this *WebExporter) ServeHTTP(wrt http.ResponseWriter, req *http.Request) {
 	if this.mux == nil {
 		this.mux = http.NewServeMux()
 		this.mux.Handle("GET /uptime", http.HandlerFunc(this.handleUptime))
+		this.mux.Handle("GET /tlscert", http.HandlerFunc(this.handleTlscert))
 	}
 
 	this.mux.ServeHTTP(wrt, req)
@@ -31,15 +31,10 @@ func (this *WebExporter) handleUptime(wrt http.ResponseWriter, req *http.Request
 	rangeTo := time.Now()
 	var rangeInterval time.Duration
 
-	var handleInvalidInput = func(err error) {
-		wrt.WriteHeader(http.StatusBadRequest)
-		wrt.Write([]byte("invald query intput: " + err.Error()))
-	}
-
 	if val := req.URL.Query().Get("from"); val != "" {
 		point, err := time.Parse(time.RFC3339, val)
 		if err != nil {
-			handleInvalidInput(errors.New("invalid 'from' parameter format: " + err.Error()))
+			respondInvalidInput(wrt, errors.New("invalid 'from' parameter format: "+err.Error()))
 			return
 		}
 		rangeFrom = point
@@ -48,7 +43,7 @@ func (this *WebExporter) handleUptime(wrt http.ResponseWriter, req *http.Request
 	if val := req.URL.Query().Get("to"); val != "" {
 		point, err := time.Parse(time.RFC3339, val)
 		if err != nil {
-			handleInvalidInput(errors.New("invalid 'to' parameter format: " + err.Error()))
+			respondInvalidInput(wrt, errors.New("invalid 'to' parameter format: "+err.Error()))
 			return
 		}
 		rangeTo = point
@@ -57,7 +52,7 @@ func (this *WebExporter) handleUptime(wrt http.ResponseWriter, req *http.Request
 	if val := req.URL.Query().Get("interval"); val != "" {
 		interval, err := time.ParseDuration(val)
 		if err != nil {
-			handleInvalidInput(errors.New("invalid 'interval' parameter format: " + err.Error()))
+			respondInvalidInput(wrt, errors.New("invalid 'interval' parameter format: "+err.Error()))
 			return
 		}
 		rangeInterval = interval
@@ -65,7 +60,7 @@ func (this *WebExporter) handleUptime(wrt http.ResponseWriter, req *http.Request
 
 	entries, err := this.Storage.QueryUptimeRange(rangeFrom, rangeTo)
 	if err != nil {
-		slog.Error("Failed to query data for series exporter",
+		slog.Error("Failed to query data for uptime exporter",
 			slog.String("err", err.Error()))
 		return
 	}
@@ -86,14 +81,52 @@ func (this *WebExporter) handleUptime(wrt http.ResponseWriter, req *http.Request
 		}
 	}
 
-	wrt.Header().Set("content-type", "application/json")
+	respondData(wrt, result)
+}
 
-	jsonEnc := json.NewEncoder(wrt)
-	jsonEnc.SetIndent("", "  ")
+func (this *WebExporter) handleTlscert(wrt http.ResponseWriter, req *http.Request) {
 
-	if err := jsonEnc.Encode(result); err != nil {
-		slog.Error("Failed to serialize series exporter data",
+	rangeFrom := time.Now().Add(-time.Hour)
+	rangeTo := time.Now()
+
+	if val := req.URL.Query().Get("from"); val != "" {
+		point, err := time.Parse(time.RFC3339, val)
+		if err != nil {
+			respondInvalidInput(wrt, errors.New("invalid 'from' parameter format: "+err.Error()))
+			return
+		}
+		rangeFrom = point
+	}
+
+	if val := req.URL.Query().Get("to"); val != "" {
+		point, err := time.Parse(time.RFC3339, val)
+		if err != nil {
+			respondInvalidInput(wrt, errors.New("invalid 'to' parameter format: "+err.Error()))
+			return
+		}
+		rangeTo = point
+	}
+
+	entries, err := this.Storage.QueryTlsRange(rangeFrom, rangeTo)
+	if err != nil {
+		slog.Error("Failed to query data for tls exporter",
 			slog.String("err", err.Error()))
 		return
 	}
+
+	result := make([]map[string]any, len(entries))
+	for idx, val := range entries {
+		result[idx] = map[string]any{
+			"time":             val.Time.Format(time.RFC3339),
+			"label":            val.Label,
+			"security":         val.Security,
+			"secure":           val.Secure,
+			"cert_subject":     val.CertSubject,
+			"cert_issuer":      val.CertIssuer,
+			"cert_expires":     val.CertExpires,
+			"cert_fingerprint": val.CertFingerprint,
+		}
+	}
+
+	respondData(wrt, result)
 }
