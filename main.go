@@ -93,7 +93,7 @@ func main() {
 
 	defer storage.Close()
 
-	var serveMux *http.ServeMux
+	serveMux := &http.ServeMux{}
 
 	if cfg.Exporters.Web.Enabled {
 
@@ -102,18 +102,14 @@ func main() {
 		slog.Info("Web exporter enabled",
 			slog.String("path", handlerPath))
 
-		exporter := &exporters.WebExporter{Storage: storage}
-
-		if serveMux == nil {
-			serveMux = &http.ServeMux{}
-		}
-
-		serveMux.Handle(handlerPath, http.StripPrefix(handlerPath, exporter))
+		serveMux.Handle(handlerPath, http.StripPrefix(handlerPath, &exporters.WebExporter{
+			Storage: storage,
+		}))
 	}
 
 	go waitForExitSignal(cancel)
 
-	if serveMux != nil {
+	if cfg.Exporters.HasHandlers() {
 		go startApiServer(ctx, serveMux)
 	}
 
