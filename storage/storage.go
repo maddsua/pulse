@@ -9,6 +9,10 @@ import (
 type Storage interface {
 	PushUptime(entry UptimeEntry) error
 	QueryUptimeRange(from time.Time, to time.Time) ([]UptimeEntry, error)
+
+	PushTlsEntry(entry TlsSecurityEntry) error
+	QueryTlsRange(from time.Time, to time.Time) ([]TlsSecurityEntry, error)
+
 	Close() error
 }
 
@@ -49,4 +53,16 @@ type UptimeEntry struct {
 	HttpStatus null.Int
 	Elapsed    time.Duration
 	LatencyMs  int
+}
+
+type TlsSecurityEntry struct {
+	ID              null.Int
+	Time            time.Time
+	Label           string
+	Security        string
+	Secure          bool
+	CertSubject     null.String
+	CertIssuer      null.String
+	CertExpires     null.Time
+	CertFingerprint null.String
 }

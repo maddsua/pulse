@@ -9,6 +9,17 @@ import (
 	"time"
 )
 
+type Tlscert struct {
+	ID              int64
+	Time            time.Time
+	Label           string
+	Security        string
+	CertSubject     sql.NullString
+	CertIssuer      sql.NullString
+	CertExpires     sql.NullTime
+	CertFingerprint sql.NullString
+}
+
 type Uptime struct {
 	ID         int64
 	Time       time.Time
