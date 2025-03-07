@@ -1,49 +1,16 @@
 package config
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
-	"gopkg.in/yaml.v3"
+	"github.com/maddsua/pulse/utils"
 )
-
-func LoadConfigFile(path string) (*RootConfig, error) {
-
-	file, err := os.OpenFile(path, os.O_RDONLY, os.ModePerm)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open config file: %s", err.Error())
-	}
-
-	info, err := file.Stat()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get config file info: %s", err.Error())
-	}
-
-	if !info.Mode().IsRegular() {
-		return nil, errors.New("failed to read config file: config file must be a regular file")
-	}
-
-	var cfg RootConfig
-
-	if strings.HasSuffix(path, ".yml") {
-		if err := yaml.NewDecoder(file).Decode(&cfg); err != nil {
-			return nil, fmt.Errorf("failed to decode config file: %s", err.Error())
-		}
-	} else if strings.HasSuffix(path, ".json") {
-		if err := json.NewDecoder(file).Decode(&cfg); err != nil {
-			return nil, fmt.Errorf("failed to decode config file: %s", err.Error())
-		}
-	} else {
-		return nil, errors.New("unsupported config file format")
-	}
-
-	return &cfg, nil
-}
 
 type RootConfig struct {
 	Probes    map[string]ProbeConfig `yaml:"probes" json:"probes"`
@@ -140,25 +107,41 @@ func (this *ProbeConfig) Validate(proxies ProxyConfigMap) error {
 }
 
 type BaseProbeConfig struct {
-	Interval int `yaml:"interval" json:"interval"`
-	Timeout  int `yaml:"timeout" json:"timeout"`
+	CfgInterval string `yaml:"interval" json:"interval"`
+	CfgTimeout  string `yaml:"timeout" json:"timeout"`
+	interval    time.Duration
+	timeout     time.Duration
 }
 
 func (this *BaseProbeConfig) Validate() error {
 
-	if this.Interval == 0 {
-		this.Interval = 60
-	} else if this.Interval < 0 {
-		return errors.New("invalid interval value")
+	var err error
+
+	if this.interval, err = utils.ParseDuration(this.CfgInterval); err != nil {
+		return err
 	}
 
-	if this.Timeout == 0 {
-		this.Timeout = 10
-	} else if this.Timeout < 0 {
-		return errors.New("invalid timeout value")
+	if this.timeout, err = utils.ParseDuration(this.CfgTimeout); err != nil {
+		return err
+	}
+
+	if this.interval == 0 {
+		this.interval = 60
+	}
+
+	if this.timeout == 0 {
+		this.timeout = 10
 	}
 
 	return nil
+}
+
+func (this *BaseProbeConfig) Interval() time.Duration {
+	return this.interval
+}
+
+func (this *BaseProbeConfig) Timeout() time.Duration {
+	return this.timeout
 }
 
 type HttpProbeConfig struct {

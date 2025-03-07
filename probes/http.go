@@ -63,10 +63,10 @@ func NewHttpProbe(label string, opts config.HttpProbeConfig, proxies config.Prox
 
 	return &httpProbe{
 		probeTask: probeTask{
-			nextRun:  time.Now().Add(time.Second * time.Duration(opts.Interval)),
-			interval: time.Second * time.Duration(opts.Interval),
+			nextRun:  time.Now().Add(time.Second * time.Duration(opts.Interval())),
+			interval: time.Second * time.Duration(opts.Interval()),
 			label:    label,
-			timeout:  time.Second * time.Duration(opts.Timeout),
+			timeout:  time.Second * time.Duration(opts.Timeout()),
 		},
 		req:    req,
 		client: &http.Client{Transport: transport},
