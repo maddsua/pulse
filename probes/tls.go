@@ -32,10 +32,10 @@ func NewTlsProbe(label string, opts config.TlsProbeConfig, proxies config.ProxyC
 
 	return &tlsProbe{
 		probeTask: probeTask{
-			nextRun:  time.Now().Add(time.Second * time.Duration(opts.Interval())),
-			interval: time.Second * time.Duration(opts.Interval()),
+			nextRun:  time.Now().Add(opts.Interval()),
+			interval: opts.Interval(),
 			label:    label,
-			timeout:  time.Second * time.Duration(opts.Timeout()),
+			timeout:  opts.Timeout(),
 		},
 		host:     hostAddr,
 		hostname: hostname,

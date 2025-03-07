@@ -128,11 +128,11 @@ func (this *BaseProbeConfig) Validate() error {
 	}
 
 	if this.interval <= 0 {
-		this.interval = 60
+		this.interval = 60 * time.Second
 	}
 
 	if this.timeout <= 0 {
-		this.timeout = 10
+		this.timeout = 10 * time.Second
 	}
 
 	return nil
