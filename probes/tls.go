@@ -39,7 +39,7 @@ func NewTlsProbe(label string, opts config.TlsProbeConfig, proxies config.ProxyC
 		},
 		host:     hostAddr,
 		hostname: hostname,
-		//	todo: pass proxy
+		dialer:   &tls.Dialer{},
 	}, nil
 }
 
@@ -47,6 +47,7 @@ type tlsProbe struct {
 	probeTask
 	host     string
 	hostname string
+	dialer   *tls.Dialer
 }
 
 func (this *tlsProbe) Type() string {
@@ -63,9 +64,10 @@ func (this *tlsProbe) Do(ctx context.Context, storageDriver storage.Storage) err
 
 	started := time.Now()
 
-	//	todo: add timeout
+	dialCtx, canceldial := context.WithTimeout(ctx, this.timeout)
+	defer canceldial()
 
-	stats, err := this.queryTargetTls()
+	stats, err := this.queryTargetTls(dialCtx)
 	if err != nil {
 		return this.dispatchEntry(storageDriver, storage.TlsSecurityEntry{
 			Time:     time.Now(),
@@ -111,16 +113,16 @@ func (this *tlsProbe) dispatchEntry(storageDriver storage.Storage, entry storage
 	return storageDriver.PushTlsEntry(entry)
 }
 
-func (this *tlsProbe) queryTargetTls() (tls.ConnectionState, error) {
+func (this *tlsProbe) queryTargetTls(ctx context.Context) (tls.ConnectionState, error) {
 
-	conn, err := tls.Dial("tcp", this.host, nil)
+	conn, err := this.dialer.DialContext(ctx, "tcp", this.host)
 	if err != nil {
 		return tls.ConnectionState{}, err
 	}
 
 	defer conn.Close()
 
-	return conn.ConnectionState(), nil
+	return conn.(*tls.Conn).ConnectionState(), nil
 }
 
 func (this *tlsProbe) findRelevantCert(certs []*x509.Certificate) *x509.Certificate {
