@@ -152,11 +152,11 @@ func (this *BaseProbeConfig) Validate() error {
 }
 
 type HttpProbeConfig struct {
+	BaseProbeConfig
 	Method  HttpMethod        `yaml:"method" json:"method"`
 	Url     string            `yaml:"url" json:"url"`
 	Headers map[string]string `yaml:"headers" json:"headers"`
 	Proxy   string            `yaml:"proxy" json:"proxy"`
-	BaseProbeConfig
 }
 
 func (this *HttpProbeConfig) Validate() error {
@@ -254,4 +254,10 @@ func (this *ProxyConfig) Validate() error {
 
 type TaskhostConfig struct {
 	Autorun bool `yaml:"autorun" json:"autorun"`
+}
+
+type TlsProbeConfig struct {
+	BaseProbeConfig
+	Host  string `yaml:"host" json:"host"`
+	Proxy string `yaml:"proxy" json:"proxy"`
 }
