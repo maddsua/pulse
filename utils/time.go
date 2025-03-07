@@ -13,18 +13,28 @@ func ParseDuration(val string) (time.Duration, error) {
 		return 0, nil
 	}
 
+	var useStdlibParser = func(val string) (time.Duration, error) {
+
+		duration, err := time.ParseDuration(val)
+		if err != nil {
+			return 0, err
+		} else if duration < 0 {
+			return 0, errors.New("invalid duration value")
+		}
+
+		return duration, nil
+	}
+
 	for _, next := range val {
 		if next < '0' || next > '9' {
-			return time.ParseDuration(val)
+			return useStdlibParser(val)
 		}
 	}
 
 	seconds, err := strconv.ParseInt(val, 10, 64)
 	if err != nil {
 		return 0, err
-	}
-
-	if seconds < 0 {
+	} else if seconds < 0 {
 		return 0, errors.New("invalid duration value")
 	}
 

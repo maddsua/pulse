@@ -145,11 +145,11 @@ func (this *BaseProbeConfig) Timeout() time.Duration {
 }
 
 type HttpProbeConfig struct {
-	BaseProbeConfig
-	Method  HttpMethod        `yaml:"method" json:"method"`
-	Url     string            `yaml:"url" json:"url"`
-	Headers map[string]string `yaml:"headers" json:"headers"`
-	Proxy   string            `yaml:"proxy" json:"proxy"`
+	BaseProbeConfig `yaml:",inline"`
+	Method          HttpMethod        `yaml:"method" json:"method"`
+	Url             string            `yaml:"url" json:"url"`
+	Headers         map[string]string `yaml:"headers" json:"headers"`
+	Proxy           string            `yaml:"proxy" json:"proxy"`
 }
 
 func (this *HttpProbeConfig) Validate() error {
@@ -250,8 +250,8 @@ type TaskhostConfig struct {
 }
 
 type TlsProbeConfig struct {
-	BaseProbeConfig
-	Host string `yaml:"host" json:"host"`
+	BaseProbeConfig `yaml:",inline"`
+	Host            string `yaml:"host" json:"host"`
 }
 
 func (this *TlsProbeConfig) Validate() error {
