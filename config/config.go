@@ -268,8 +268,7 @@ type TaskhostConfig struct {
 
 type TlsProbeConfig struct {
 	BaseProbeConfig
-	Host  string `yaml:"host" json:"host"`
-	Proxy string `yaml:"proxy" json:"proxy"`
+	Host string `yaml:"host" json:"host"`
 }
 
 func (this *TlsProbeConfig) Validate() error {
