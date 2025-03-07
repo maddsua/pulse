@@ -3,6 +3,7 @@ package exporters
 import (
 	"time"
 
+	"github.com/guregu/null"
 	"github.com/maddsua/pulse/storage"
 )
 
@@ -52,45 +53,60 @@ func mergeLabeledUptimeEntries(entries []storage.UptimeEntry) []storage.UptimeEn
 
 func mergeUptimeEntries(entries []storage.UptimeEntry) storage.UptimeEntry {
 
-	//	todo: rewrite this shit; it looks horrific
+	var latencyAvg int
+	var elapsedAvg time.Duration
 
-	var latency int
-	var elapsed time.Duration
-
+	var maxStatusVal storage.ServiceStatus
 	var maxStatusN int
-	var maxStatusKey int
 
 	statuses := map[int]int{}
 
+	var maxHttpStatusVal null.Int
 	var maxHttpStatusN int
-	var maxHttpStatusKey int
 
 	httpStatuses := map[int]int{}
 
 	for _, entry := range entries {
 
-		if latency >= 0 {
-			latency += entry.LatencyMs
+		if latencyAvg >= 0 {
+			latencyAvg += entry.LatencyMs
+		} else {
+			latencyAvg = -1
 		}
 
-		elapsed += entry.Elapsed
+		elapsedAvg += entry.Elapsed
 
 		if entry.HttpStatus.Valid {
+
 			key := int(entry.HttpStatus.Int64)
-			statuses[key] = statuses[key] + 1
+			nextN := statuses[key] + 1
+			statuses[key] = nextN
+
+			if nextN > int(maxHttpStatusN) {
+				maxHttpStatusN = nextN
+				maxHttpStatusVal = entry.HttpStatus
+			}
 		}
 
 		key := int(entry.Status)
-		httpStatuses[key] = httpStatuses[key] + 1
+		nextN := httpStatuses[key] + 1
+		httpStatuses[key] = nextN
+
+		if nextN > maxStatusN {
+			maxStatusN = nextN
+			maxStatusVal = entry.Status
+		}
 	}
 
 	result := storage.UptimeEntry{
-		Elapsed: (elapsed / time.Duration(len(entries))),
-		Status:  storage.ServiceStatus(maxHttpStatusKey),
+		LatencyMs:  latencyAvg,
+		Elapsed:    (elapsedAvg / time.Duration(len(entries))),
+		Status:     storage.ServiceStatus(maxStatusVal),
+		HttpStatus: maxHttpStatusVal,
 	}
 
-	if latency >= 0 {
-		result.LatencyMs = (latency / len(entries))
+	if latencyAvg >= 0 {
+		result.LatencyMs = (latencyAvg / len(entries))
 	}
 
 	return result
