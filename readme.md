@@ -91,10 +91,11 @@ order by time
 There's also an exporter api, that can be enabled with the following config lines:
 ```yml
 exporters:
-  series: true
+  web:
+    enabled: true
 ```
 
-This will enable a local http server with a path `/exporters/series` that can be used to query metrics in json format.
+This will enable a local http server with a path `/exporters/web/` that can be used to query metrics in json format.
 
 See the [openapi.yml](./openapi.yml) for more details.
 

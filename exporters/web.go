@@ -1,4 +1,4 @@
-package main
+package exporters
 
 import (
 	"encoding/json"
@@ -10,14 +10,26 @@ import (
 	"github.com/maddsua/pulse/storage"
 )
 
-type SeriesExporter struct {
+type WebExporter struct {
 	Storage storage.Storage
+	mux     *http.ServeMux
 }
 
-func (this *SeriesExporter) ServeHTTP(wrt http.ResponseWriter, req *http.Request) {
+func (this *WebExporter) ServeHTTP(wrt http.ResponseWriter, req *http.Request) {
+
+	if this.mux == nil {
+		this.mux = http.NewServeMux()
+		this.mux.Handle("GET /uptime", http.HandlerFunc(this.handleUptime))
+	}
+
+	this.mux.ServeHTTP(wrt, req)
+}
+
+func (this *WebExporter) handleUptime(wrt http.ResponseWriter, req *http.Request) {
 
 	rangeFrom := time.Now().Add(-6 * time.Hour)
 	rangeTo := time.Now()
+	var rangeInterval time.Duration
 
 	var handleInvalidInput = func(err error) {
 		wrt.WriteHeader(http.StatusBadRequest)
@@ -42,11 +54,24 @@ func (this *SeriesExporter) ServeHTTP(wrt http.ResponseWriter, req *http.Request
 		rangeTo = point
 	}
 
+	if val := req.URL.Query().Get("interval"); val != "" {
+		interval, err := time.ParseDuration(val)
+		if err != nil {
+			handleInvalidInput(errors.New("invalid 'interval' parameter format: " + err.Error()))
+			return
+		}
+		rangeInterval = interval
+	}
+
 	entries, err := this.Storage.QueryUptimeRange(rangeFrom, rangeTo)
 	if err != nil {
 		slog.Error("Failed to query data for series exporter",
 			slog.String("err", err.Error()))
 		return
+	}
+
+	if rangeInterval > 0 {
+		entries = aggregateUptimeEntries(entries, rangeInterval)
 	}
 
 	result := make([]map[string]any, len(entries))
@@ -63,7 +88,10 @@ func (this *SeriesExporter) ServeHTTP(wrt http.ResponseWriter, req *http.Request
 
 	wrt.Header().Set("content-type", "application/json")
 
-	if err := json.NewEncoder(wrt).Encode(result); err != nil {
+	jsonEnc := json.NewEncoder(wrt)
+	jsonEnc.SetIndent("", "  ")
+
+	if err := jsonEnc.Encode(result); err != nil {
 		slog.Error("Failed to serialize series exporter data",
 			slog.String("err", err.Error()))
 		return

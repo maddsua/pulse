@@ -135,7 +135,7 @@ func (this *httpProbeTask) Do(ctx context.Context, storageDriver storage.Storage
 			slog.String("err", err.Error()),
 			slog.Duration("after", elapsed))
 
-		return this.dispatchEntry(storageDriver, storage.PulseEntry{
+		return this.dispatchEntry(storageDriver, storage.UptimeEntry{
 			Label:      this.label,
 			Time:       started,
 			Status:     storage.ServiceStatusDown,
@@ -148,7 +148,7 @@ func (this *httpProbeTask) Do(ctx context.Context, storageDriver storage.Storage
 	defer resp.Body.Close()
 
 	if !this.isOkStatus(resp.StatusCode) {
-		return this.dispatchEntry(storageDriver, storage.PulseEntry{
+		return this.dispatchEntry(storageDriver, storage.UptimeEntry{
 			Label:      this.label,
 			Time:       started,
 			Status:     storage.ServiceStatusDown,
@@ -158,7 +158,7 @@ func (this *httpProbeTask) Do(ctx context.Context, storageDriver storage.Storage
 		})
 	}
 
-	return this.dispatchEntry(storageDriver, storage.PulseEntry{
+	return this.dispatchEntry(storageDriver, storage.UptimeEntry{
 		Label:      this.label,
 		Time:       started,
 		Status:     storage.ServiceStatusUp,
@@ -168,7 +168,7 @@ func (this *httpProbeTask) Do(ctx context.Context, storageDriver storage.Storage
 	})
 }
 
-func (this *httpProbeTask) dispatchEntry(storageDriver storage.Storage, entry storage.PulseEntry) error {
+func (this *httpProbeTask) dispatchEntry(storageDriver storage.Storage, entry storage.UptimeEntry) error {
 
 	slog.Debug("upd http "+this.label,
 		slog.String("status", entry.Status.String()),

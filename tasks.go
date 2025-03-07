@@ -20,6 +20,7 @@ type ProbeTask interface {
 type TaskHost struct {
 	Tasks   []ProbeTask
 	Storage storage.Storage
+	Autorun bool
 	ticker  *time.Ticker
 }
 
@@ -31,7 +32,7 @@ func (this *TaskHost) Run(ctx context.Context) {
 
 	this.ticker = time.NewTicker(time.Second)
 
-	var invokeTask = func(task ProbeTask) {
+	var execTask = func(task ProbeTask) {
 
 		slog.Debug("exec "+task.Label(),
 			slog.Time("next_run", time.Now().Add(task.Interval())))
@@ -44,18 +45,24 @@ func (this *TaskHost) Run(ctx context.Context) {
 		}
 	}
 
-	var updateTasks = func() {
+	var invokeTasks = func() {
 		for _, task := range this.Tasks {
 			if task.Ready() {
-				go invokeTask(task)
+				go execTask(task)
 			}
+		}
+	}
+
+	if this.Autorun {
+		for _, task := range this.Tasks {
+			go execTask(task)
 		}
 	}
 
 	for {
 		select {
 		case <-this.ticker.C:
-			updateTasks()
+			invokeTasks()
 		case <-ctx.Done():
 			this.ticker.Stop()
 			return

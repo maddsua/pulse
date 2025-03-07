@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
+	"github.com/maddsua/pulse/exporters"
 	"github.com/maddsua/pulse/storage"
 	sqlite_storage "github.com/maddsua/pulse/storage/sqlite"
 	timescale_storage "github.com/maddsua/pulse/storage/timescale"
@@ -92,33 +93,30 @@ func main() {
 
 	defer storage.Close()
 
-	var serveMux *http.ServeMux
+	serveMux := &http.ServeMux{}
 
-	if cfg.Exporters.Series {
+	if cfg.Exporters.Web.Enabled {
 
-		const handlerPath = "/exporters/series"
+		handlerPath := PrefixPath("/exporters/web")
 
-		slog.Info("Series exporter enabled",
-			slog.String("path", handlerPath))
+		slog.Info("Web exporter enabled",
+			slog.String("path", handlerPath.String()))
 
-		exporter := &SeriesExporter{Storage: storage}
-
-		if serveMux == nil {
-			serveMux = &http.ServeMux{}
-		}
-
-		serveMux.Handle(handlerPath, exporter)
+		serveMux.Handle(handlerPath.Path(), http.StripPrefix(handlerPath.String(), &exporters.WebExporter{
+			Storage: storage,
+		}))
 	}
 
 	go waitForExitSignal(cancel)
 
-	if serveMux != nil {
+	if cfg.Exporters.HasHandlers() {
 		go startApiServer(ctx, serveMux)
 	}
 
 	taskhost := TaskHost{
 		Storage: storage,
 		Tasks:   tasks,
+		Autorun: cfg.Taskhost.Autorun,
 	}
 
 	slog.Info("Starting tasks now")
@@ -167,4 +165,14 @@ func waitForExitSignal(cancel context.CancelFunc) {
 	slog.Info("Shutting down...")
 
 	cancel()
+}
+
+type PrefixPath string
+
+func (this PrefixPath) Path() string {
+	return string(this) + "/"
+}
+
+func (this PrefixPath) String() string {
+	return string(this)
 }

@@ -49,6 +49,7 @@ type RootConfig struct {
 	Probes    map[string]ProbeConfig `yaml:"probes" json:"probes"`
 	Exporters ExportersConfig        `yaml:"exporters"  json:"exporters"`
 	Proxies   ProxyConfigMap         `yaml:"proxies"  json:"proxies"`
+	Taskhost  TaskhostConfig         `yaml:"taskhost"  json:"taskhost"`
 }
 
 type ProxyConfigMap map[string]*ProxyConfig
@@ -82,13 +83,13 @@ type ProbeConfig struct {
 
 func (this *ProbeConfig) UptimeChecks() int {
 
-	states := []bool{
+	cases := []bool{
 		this.Http != nil,
 	}
 
 	var count int
 
-	for _, item := range states {
+	for _, item := range cases {
 		if item {
 			count++
 		}
@@ -189,7 +190,28 @@ func (this *HttpMethod) Validate() bool {
 }
 
 type ExportersConfig struct {
-	Series bool `yaml:"series" json:"series"`
+	Web WebExporterConfig `yaml:"web" json:"web"`
+}
+
+func (this *ExportersConfig) HasHandlers() bool {
+
+	cases := []bool{
+		this.Web.Enabled,
+	}
+
+	var count int
+
+	for _, item := range cases {
+		if item {
+			count++
+		}
+	}
+
+	return count > 0
+}
+
+type WebExporterConfig struct {
+	Enabled bool `yaml:"enabled" json:"enabled"`
 }
 
 type ProxyConfig struct {
@@ -228,4 +250,8 @@ func (this *ProxyConfig) Validate() error {
 	}
 
 	return nil
+}
+
+type TaskhostConfig struct {
+	Autorun bool `yaml:"autorun" json:"autorun"`
 }
