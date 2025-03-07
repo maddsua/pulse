@@ -115,21 +115,23 @@ type BaseProbeConfig struct {
 
 func (this *BaseProbeConfig) Validate() error {
 
-	var err error
-
-	if this.interval, err = utils.ParseDuration(this.CfgInterval); err != nil {
+	if val, err := utils.ParseDuration(this.CfgInterval); err != nil {
 		return err
+	} else {
+		this.interval = val
 	}
 
-	if this.timeout, err = utils.ParseDuration(this.CfgTimeout); err != nil {
+	if val, err := utils.ParseDuration(this.CfgTimeout); err != nil {
 		return err
+	} else {
+		this.timeout = val
 	}
 
-	if this.interval == 0 {
+	if this.interval <= 0 {
 		this.interval = 60
 	}
 
-	if this.timeout == 0 {
+	if this.timeout <= 0 {
 		this.timeout = 10
 	}
 

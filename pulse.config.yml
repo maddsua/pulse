@@ -3,18 +3,20 @@ probes:
     http:
       method: GET
       url: https://1.1.1.1/
+      interval: 2m
       timeout: 15s
   google:
     http:
       method: HEAD
       url: http://google.com
-      interval: 10s
-      timeout: 5s
+      interval: 2m
+      timeout: 15s
   railway:
     http:
       method: HEAD
       url: http://railway.com
-      timeout: 35
+      interval: 2m
+      timeout: 15s
   github:
     http:
       url: http://github.com
