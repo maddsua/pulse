@@ -82,13 +82,13 @@ type ProbeConfig struct {
 
 func (this *ProbeConfig) UptimeChecks() int {
 
-	states := []bool{
+	cases := []bool{
 		this.Http != nil,
 	}
 
 	var count int
 
-	for _, item := range states {
+	for _, item := range cases {
 		if item {
 			count++
 		}
@@ -190,6 +190,23 @@ func (this *HttpMethod) Validate() bool {
 
 type ExportersConfig struct {
 	Web WebExporterConfig `yaml:"web" json:"web"`
+}
+
+func (this *ExportersConfig) HasHandlers() bool {
+
+	cases := []bool{
+		this.Web.Enabled,
+	}
+
+	var count int
+
+	for _, item := range cases {
+		if item {
+			count++
+		}
+	}
+
+	return count > 0
 }
 
 type WebExporterConfig struct {
