@@ -15,10 +15,10 @@ type Storage interface {
 type ServiceStatus int
 
 const (
+	ServiceStatusDown       = 0
 	ServiceStatusUp         = 1
-	ServiceStatusDown       = 2
-	ServiceStatusUpString   = "up"
 	ServiceStatusDownString = "down"
+	ServiceStatusUpString   = "up"
 )
 
 func (this ServiceStatus) String() string {
