@@ -3,8 +3,6 @@ package probes
 import (
 	"context"
 	"crypto/tls"
-	"errors"
-	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
@@ -14,7 +12,6 @@ import (
 
 	"github.com/guregu/null"
 	"github.com/maddsua/pulse/config"
-	socks "github.com/maddsua/pulse/proxy"
 	"github.com/maddsua/pulse/storage"
 )
 
@@ -56,26 +53,12 @@ func NewHttpProbe(label string, opts config.HttpProbeConfig, proxies config.Prox
 
 	if opts.Proxy != "" {
 
-		if len(proxies) == 0 {
-			return nil, errors.New("no proxies defined in the config")
-		}
-
-		proxyCfg, has := proxies[opts.Proxy]
-		if !has || proxyCfg == nil {
-			return nil, errors.New("proxy tag not found")
-		}
-
-		proxyUrl, err := url.Parse(proxyCfg.Url)
+		proxy, err := loadProxy(opts.Proxy, proxies)
 		if err != nil {
-			return nil, fmt.Errorf("proxy url invalid: %s", err.Error())
+			return nil, err
 		}
 
-		dialer, err := socks.NewSocksProxyDialer(proxyUrl.Host, proxyUrl.User)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create proxy dialer: %s", err.Error())
-		}
-
-		transport.DialContext = dialer.DialContext
+		transport.DialContext = proxy.DialContext
 	}
 
 	return &httpProbe{

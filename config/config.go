@@ -79,6 +79,7 @@ func (this *RootConfig) Validate() error {
 
 type ProbeConfig struct {
 	Http *HttpProbeConfig `yaml:"http" json:"http"`
+	Tls  *TlsProbeConfig  `yaml:"tls" json:"tls"`
 }
 
 func (this *ProbeConfig) UptimeChecks() int {

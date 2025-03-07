@@ -49,6 +49,10 @@ type tlsProbe struct {
 	hostname string
 }
 
+func (this *tlsProbe) Type() string {
+	return "tls"
+}
+
 func (this *tlsProbe) Do(ctx context.Context, storageDriver storage.Storage) error {
 
 	if err := this.probeTask.Lock(); err != nil {
