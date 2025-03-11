@@ -125,12 +125,18 @@ probes:
       timeout: 10
       # optional name of the proxy to use
       proxy: my-proxy
+      # autorun options;
+      # 'true' allows this task to autorun by itself;
+      # 'false' prevents it from being run on startup when a global autorun is enabled
+      autorun: true|false
 
 # data export API options;
 # if no exporters are enabled, pulse won't even start the http server, as it's not needed for anything
 exporters:
-  # this one enables the series endpoint
-  series: true
+  # 'web' is just a generic http/rest/whatever API exporter;
+  # no other options are supported at the moment
+  web:
+    enabled: true
 
 # http probe client's proxy configs
 proxies:
@@ -139,4 +145,9 @@ proxies:
     # it's url in format socks://[username:password]@hostname:port
     # can be set as an env variable name with a dollar sign prefix or as a plain string
     url: $MY_PROXY_URL
+
+taskhost:
+  # enables global task autorun;
+  # this will run all the task on startup instead of waiting for their scheduled runs
+  autorun: false
 ```

@@ -8,6 +8,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/guregu/null"
 )
 
 type RootConfig struct {
@@ -105,8 +107,9 @@ func (this *ProbeConfig) Validate(proxies ProxyConfigMap) error {
 }
 
 type BaseProbeConfig struct {
-	CfgInterval string `yaml:"interval" json:"interval"`
-	CfgTimeout  string `yaml:"timeout" json:"timeout"`
+	Autorun     null.Bool `yaml:"autorun" json:"autorun"`
+	CfgInterval string    `yaml:"interval" json:"interval"`
+	CfgTimeout  string    `yaml:"timeout" json:"timeout"`
 	interval    time.Duration
 	timeout     time.Duration
 }

@@ -17,6 +17,7 @@ probes:
       url: http://railway.com
       interval: 2m
       timeout: 15s
+      autorun: true
   github:
     http:
       url: http://github.com

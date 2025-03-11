@@ -3,6 +3,7 @@ package probes
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/url"
 	"time"
 
@@ -12,11 +13,10 @@ import (
 )
 
 type probeTask struct {
-	timeout  time.Duration
-	interval time.Duration
-	nextRun  time.Time
-	locked   bool
-	label    string
+	config.BaseProbeConfig
+	nextRun time.Time
+	locked  bool
+	label   string
 }
 
 func (this *probeTask) Label() string {
@@ -24,11 +24,25 @@ func (this *probeTask) Label() string {
 }
 
 func (this *probeTask) Interval() time.Duration {
-	return this.interval
+	return this.BaseProbeConfig.Interval()
 }
 
 func (this *probeTask) Ready() bool {
+
+	if this.nextRun.IsZero() {
+		this.nextRun = time.Now().Add(this.BaseProbeConfig.Interval())
+		if this.BaseProbeConfig.Autorun.Bool {
+			slog.Debug("Task autorun",
+				slog.String("label", this.label))
+			return true
+		}
+	}
+
 	return !this.locked && time.Now().After(this.nextRun)
+}
+
+func (this *probeTask) Autorun() bool {
+	return !(this.BaseProbeConfig.Autorun.Valid && !this.BaseProbeConfig.Autorun.Bool)
 }
 
 func (this *probeTask) Lock() error {
@@ -48,7 +62,7 @@ func (this *probeTask) Unlock() error {
 		return errors.New("task not locked")
 	}
 
-	this.nextRun = time.Now().Add(this.interval)
+	this.nextRun = time.Now().Add(this.BaseProbeConfig.Interval())
 	this.locked = false
 	return nil
 }

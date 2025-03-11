@@ -63,10 +63,8 @@ func NewHttpProbe(label string, opts config.HttpProbeConfig, proxies config.Prox
 
 	return &httpProbe{
 		probeTask: probeTask{
-			nextRun:  time.Now().Add(opts.Interval()),
-			interval: opts.Interval(),
-			label:    label,
-			timeout:  opts.Timeout(),
+			BaseProbeConfig: opts.BaseProbeConfig,
+			label:           label,
 		},
 		req:    req,
 		client: &http.Client{Transport: transport},
@@ -87,14 +85,6 @@ func (this *httpProbe) Label() string {
 	return this.label
 }
 
-func (this *httpProbe) Interval() time.Duration {
-	return this.interval
-}
-
-func (this *httpProbe) Ready() bool {
-	return !this.locked && time.Now().After(this.nextRun)
-}
-
 func (this *httpProbe) Do(ctx context.Context, storageDriver storage.Storage) error {
 
 	if err := this.probeTask.Lock(); err != nil {
@@ -105,7 +95,7 @@ func (this *httpProbe) Do(ctx context.Context, storageDriver storage.Storage) er
 
 	started := time.Now()
 
-	reqCtx, cancelReq := context.WithTimeout(ctx, this.timeout)
+	reqCtx, cancelReq := context.WithTimeout(ctx, this.BaseProbeConfig.Timeout())
 	defer cancelReq()
 
 	resp, err := this.client.Do(this.req.Clone(reqCtx))
