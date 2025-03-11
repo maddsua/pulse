@@ -62,7 +62,7 @@ func (this *probeTask) Unlock() error {
 		return errors.New("task not locked")
 	}
 
-	this.nextRun = time.Now().Add(this.Interval())
+	this.nextRun = time.Now().Add(this.BaseProbeConfig.Interval())
 	this.locked = false
 	return nil
 }
