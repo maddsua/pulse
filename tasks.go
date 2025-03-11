@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/maddsua/pulse/config"
@@ -16,6 +17,7 @@ type ProbeTask interface {
 	Type() string
 	Label() string
 	Interval() time.Duration
+	Autorun() bool
 	Do(ctx context.Context, storage storage.Storage) error
 }
 
@@ -34,7 +36,11 @@ func (this *TaskHost) Run(ctx context.Context) {
 
 	this.ticker = time.NewTicker(time.Second)
 
-	var execTask = func(task ProbeTask) {
+	var execTask = func(task ProbeTask, wg *sync.WaitGroup) {
+
+		if wg != nil {
+			defer wg.Done()
+		}
 
 		slog.Debug("exec "+task.Label(),
 			slog.Time("next_run", time.Now().Add(task.Interval())))
@@ -47,24 +53,36 @@ func (this *TaskHost) Run(ctx context.Context) {
 		}
 	}
 
-	var invokeTasks = func() {
+	if this.Autorun {
+
+		slog.Info("Global task autorun enabled. Waiting for it to complete...")
+
+		var wg sync.WaitGroup
+
 		for _, task := range this.Tasks {
-			if task.Ready() {
-				go execTask(task)
+			if task.Autorun() {
+				wg.Add(1)
+				go execTask(task, &wg)
 			}
 		}
+
+		wg.Wait()
+
+		slog.Info("Autorun done")
 	}
 
-	if this.Autorun {
+	var tickerDispatch = func() {
 		for _, task := range this.Tasks {
-			go execTask(task)
+			if task.Ready() {
+				go execTask(task, nil)
+			}
 		}
 	}
 
 	for {
 		select {
 		case <-this.ticker.C:
-			invokeTasks()
+			tickerDispatch()
 		case <-ctx.Done():
 			this.ticker.Stop()
 			return

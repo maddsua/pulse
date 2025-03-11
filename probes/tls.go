@@ -32,10 +32,8 @@ func NewTlsProbe(label string, opts config.TlsProbeConfig, proxies config.ProxyC
 
 	return &tlsProbe{
 		probeTask: probeTask{
-			nextRun:  time.Now().Add(opts.Interval()),
-			interval: opts.Interval(),
-			label:    label,
-			timeout:  opts.Timeout(),
+			BaseProbeConfig: opts.BaseProbeConfig,
+			label:           label,
 		},
 		host:     hostAddr,
 		hostname: hostname,
@@ -64,7 +62,7 @@ func (this *tlsProbe) Do(ctx context.Context, storageDriver storage.Storage) err
 
 	started := time.Now()
 
-	dialCtx, canceldial := context.WithTimeout(ctx, this.timeout)
+	dialCtx, canceldial := context.WithTimeout(ctx, this.BaseProbeConfig.Timeout())
 	defer canceldial()
 
 	stats, err := this.queryTargetTls(dialCtx)
