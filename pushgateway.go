@@ -49,14 +49,17 @@ type pushgatewayStorage struct {
 	hostUrl url.URL
 }
 
+// Returns client TypeID
 func (this *pushgatewayStorage) Type() string {
 	return "prometheus"
 }
 
+// Returns client version
 func (this *pushgatewayStorage) Version() string {
 	return "v1"
 }
 
+// Checks if the service is up and running. Returns non-nil error if failed to connect
 func (this *pushgatewayStorage) Ping(ctx context.Context) error {
 
 	pingUrl := this.hostUrl
@@ -80,6 +83,7 @@ func (this *pushgatewayStorage) Ping(ctx context.Context) error {
 	return nil
 }
 
+// Writes a single uptime metric
 func (this *pushgatewayStorage) WriteUptime(ctx context.Context, entry UptimeEntry) error {
 
 	pushUrl := this.hostUrl

@@ -2,6 +2,7 @@ package pulse
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -62,10 +63,12 @@ type influxStorage struct {
 	tokenAuth *string
 }
 
+// Returns client TypeID
 func (this *influxStorage) Type() string {
 	return "influx"
 }
 
+// Returns client version
 func (this *influxStorage) Version() string {
 	return "v1"
 }
@@ -84,24 +87,38 @@ func (this *influxStorage) fetch(ctx context.Context, method string, url *url.UR
 	return http.DefaultClient.Do(req.WithContext(ctx))
 }
 
+// Ping checks whether a database is reachable and ready to receive metrics writes.
+// This is not a health check, the goal of Ping() is to ensure that the client is correctly initialized
 func (this *influxStorage) Ping(ctx context.Context) error {
 
-	pingUrl := this.baseUrl
-	pingUrl.Path = "/health"
+	params := this.baseUrl.Query()
+	params.Add("q", "SHOW DATABASES")
 
-	resp, err := this.fetch(ctx, "GET", &pingUrl, nil)
+	queryUrl := this.baseUrl
+	queryUrl.Path = "/query"
+	queryUrl.RawQuery = params.Encode()
+
+	resp, err := this.fetch(ctx, "GET", &queryUrl, nil)
 	if err != nil {
 		return err
 	}
-	resp.Body.Close()
+	defer resp.Body.Close()
 
 	if resp.StatusCode >= 300 {
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+
+		if body, err := io.ReadAll(resp.Body); err == nil {
+			slog.Debug("INFLUX ping error",
+				slog.Int("status", resp.StatusCode),
+				slog.String("body", string(body)))
+		}
+
+		return influxFmtStatusError(resp.StatusCode)
 	}
 
 	return nil
 }
 
+// Writes a single uptime metric
 func (this *influxStorage) WriteUptime(ctx context.Context, entry UptimeEntry) error {
 
 	params := url.Values{}
@@ -150,7 +167,7 @@ func (this *influxStorage) WriteUptime(ctx context.Context, entry UptimeEntry) e
 				slog.String("body", string(body)))
 		}
 
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		return influxFmtStatusError(resp.StatusCode)
 	}
 
 	return nil
@@ -202,5 +219,25 @@ func (this *influxLiner) WriteBool(key string, value bool) {
 		this.write(key, 1)
 	} else {
 		this.write(key, 0)
+	}
+}
+
+func influxFmtStatusError(status int) error {
+	switch status {
+
+	case http.StatusBadRequest:
+		return errors.New("protocol error")
+
+	case http.StatusUnauthorized:
+		return errors.New("unauthorized")
+
+	case http.StatusNotFound:
+		return errors.New("not an influx endpoint")
+
+	case http.StatusInternalServerError:
+		return errors.New("internal server error")
+
+	default:
+		return fmt.Errorf("unexpected status code: %d", status)
 	}
 }

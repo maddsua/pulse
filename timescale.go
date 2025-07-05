@@ -94,14 +94,17 @@ type timescaleStorage struct {
 	tables  map[string]string
 }
 
+// Returns client TypeID
 func (this *timescaleStorage) Type() string {
 	return "timescale"
 }
 
+// Returns client version
 func (this *timescaleStorage) Version() string {
 	return this.version
 }
 
+// Closes the database connections
 func (this *timescaleStorage) Close() error {
 	return this.db.Close()
 }
@@ -129,6 +132,7 @@ func (this *timescaleStorage) insertContext(ctx context.Context, tablename strin
 	return err
 }
 
+// Writes a single uptime metric
 func (this *timescaleStorage) WriteUptime(ctx context.Context, entry UptimeEntry) error {
 
 	tablename, has := this.tables["uptime"]
