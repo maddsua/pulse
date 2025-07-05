@@ -34,3 +34,33 @@ type UptimeEntry struct {
 	//	Resolved host address
 	Host *string
 }
+
+// Fills Latency for derivers that can't handle null values
+func (this UptimeEntry) FillLatency() time.Duration {
+
+	if this.Latency != nil {
+		return *this.Latency
+	}
+
+	return 0
+}
+
+// Fills HttpStatus for derivers that can't handle null values
+func (this UptimeEntry) FillHttpStatus() int {
+
+	if this.HttpStatus != nil {
+		return *this.HttpStatus
+	}
+
+	return 0
+}
+
+// Fills TlsVersion for derivers that can't handle null values
+func (this UptimeEntry) FillTlsVersion() int {
+
+	if this.TlsVersion != nil {
+		return *this.TlsVersion
+	}
+
+	return 0
+}

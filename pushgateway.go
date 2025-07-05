@@ -100,18 +100,9 @@ func (this *pushgatewayStorage) WriteUptime(ctx context.Context, entry UptimeEnt
 
 	liner.WriteDuration("probe_elapsed", entry.ProbeElapsed)
 	liner.WriteBool("up", entry.Up)
-
-	if entry.HttpStatus != nil {
-		liner.WriteInt("http_status", int64(*entry.HttpStatus))
-	}
-
-	if entry.Latency != nil {
-		liner.WriteDuration("latency", *entry.Latency)
-	}
-
-	if entry.TlsVersion != nil {
-		liner.WriteInt("tls_version", int64(*entry.TlsVersion))
-	}
+	liner.WriteInt("http_status", int64(entry.FillHttpStatus()))
+	liner.WriteDuration("latency", entry.FillLatency())
+	liner.WriteInt("tls_version", int64(entry.FillTlsVersion()))
 
 	if entry.Host != nil {
 		addLabel("host", *entry.Host)

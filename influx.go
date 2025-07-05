@@ -141,18 +141,9 @@ func (this *influxStorage) WriteUptime(ctx context.Context, entry UptimeEntry) e
 
 	liner.WriteDuration("probe_elapsed", entry.ProbeElapsed)
 	liner.WriteBool("up", entry.Up)
-
-	if entry.HttpStatus != nil {
-		liner.WriteInt("http_status", int64(*entry.HttpStatus))
-	}
-
-	if entry.Latency != nil {
-		liner.WriteDuration("latency", *entry.Latency)
-	}
-
-	if entry.TlsVersion != nil {
-		liner.WriteInt("tls_version", int64(*entry.TlsVersion))
-	}
+	liner.WriteDuration("latency", entry.FillLatency())
+	liner.WriteInt("http_status", int64(entry.FillHttpStatus()))
+	liner.WriteInt("tls_version", int64(entry.FillTlsVersion()))
 
 	resp, err := this.fetch(ctx, "POST", &pushUrl, liner.Reader())
 	if err != nil {
