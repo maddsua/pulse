@@ -1,0 +1,17 @@
+probes:
+  http:
+    google:
+      url: https://google.com
+      interval: 1m
+    cloudflare:
+      url: 1.1.1.1
+      interval: 1m
+##  icmp probes are not enabled in the demo config, as they require root priviledges
+#  icmp:
+#    google:
+#      host: 8.8.8.8
+#      interval: 1m
+#    cloudflare:
+#      host: 1.1.1.1
+#      interval: 1m
+autorun: true
