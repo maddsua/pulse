@@ -1,18 +1,17 @@
-FROM golang:1.23-alpine3.21 AS builder
+from docker.io/golang:1.23.2-alpine3.20 as builder
 
-WORKDIR /app
+workdir /app
 
-COPY . .
+copy . .
 
-RUN go mod download
-RUN go build -v -ldflags "-s -w" -o pulse
+run go mod download
+run go build -v -ldflags "-s -w" -o pulse-cmd ./cmd
 
-FROM alpine:latest
+from alpine:3.20
 
-WORKDIR /app
+run apk add --no-cache ca-certificates
 
-RUN apk add --no-cache ca-certificates
+copy --from=builder /app/pulse-cmd /usr/bin/pulse
+copy ./cmd/pulse.yml /etc/mws/pulse/pulse.yml
 
-COPY --from=builder /app/pulse ./
-
-ENTRYPOINT ["./pulse"]
+entrypoint ["/usr/bin/pulse"]

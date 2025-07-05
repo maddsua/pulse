@@ -1,153 +1,130 @@
 # Intro
 
-Pulse is similar to cloudprober, but minus the cloud part. It's a standalone service that you can just run everywhere with minimal config and still get those uptime and latency metrics.
+Pulse is similar to cloudprober, but minus the cloud part. It's a standalone service
+that you can just run everywhere (minus the icmp part lol, that requires root)
+with minimal config and still get those uptime and latency metrics.
 
-## Connecting to a database
+## Probe types
 
-By default, pulse uses an embedded storage backed up by sqlite3. That's cool for testing/debugging,
-but for production-ish use you'd want to connect it to a proper database service such as TimescaleDB or PostgreSQL.
+Pulse has a few ways to check if your service is up and running
 
-Use the `DATABASE_URL` environment variable to provide the, well, database url to use.
+### HTTP
+
+Umm, so it's an http probe, yeah. All it does is makes a request and waits for a 2xx response. Literally.
+
+Configuration:
+```yml
+interval: 1m	# probe invocation interval in time.Duration format
+timeout: 1m		# probe run timeout in time.Duration format
+url: http://www.google.com/gen_204	# target url
+method: HEAD	# set http request method (defaults to GET)
+headers:		# optional headers that you may want to add to the request
+	user-agent: my-custom-ua			# any headers here, really
+proxy_url: socks://user:pass@host:port	# a proxy to use with the request
+retries: 4		# number of retries if a request failed
+```
+
+The `proxy_url` can be used to enable a proxy, duh, in cases when you want to bypass firewalls or sumthng.
+
+
+### ICMP
+
+This was supposed to be the cool one, but due to the way the things are, you can't use it unless you run pulse on a VPS or your PC with root priviledges. Not great, but hey, you got the option.
+
+Config:
+```yml
+interval: 1m		# probe invocation interval in time.Duration format
+timeout: 1m			# probe run timeout in time.Duration format
+host: example.com	# target host as an ip or a domain name
+retries: 2			# number of retries if a request failed
+```
+
+## Writers
+
+Unlike v1, pulse v2 has a completely modular storage model.
+
+By default, a simple stdout output is used. It will log probe results directly to the console.
+
+These are the supported backends:
+
+### timescaldb/postgres
+
+The same primary db as in v1, except for the migrations being completely changed. Now, instead of using full schema migration, pulse will create a new series table for each version. This hepls prevent broken read queries from third party tools, but also gets rid of a whole bunch of package dependencies.
+
+Setting the `TIMESCALE_URL` environment variable will enable this storage backend.
 
 Make sure the database user has the permission to create tables in the schema 'public'.
 
-## Adding probes
-
-Adding a probe is as simple as adding a config file entry:
-```yml
-probes:
-  cloudlfare-dns:
-    http:
-      method: GET
-      url: https://1.1.1.1/
-      interval: 60
-      timeout: 10
-```
-
-## Deploying
-
-Using a dockerfile:
-```Dockerfile
-from ghcr.io/maddsua/pulse:latest
-copy ./pulse.config.yml /pulse.config.yml
-cmd ["-config=/pulse.config.yml"]
-```
-
-### Use http probes through a proxy
-
-In case you want to monitor a service that sits inside a private network,
-you can use a socks proxy to forward healthcheck requests.
-
-A sample config would look something like this:
-```yml
-probes:
-  my-private-service:
-    http:
-      url: http://10.10.10.2:80/health
-      proxy: my-vpc-proxy
-
-proxies:
-  my-vpc-proxy:
-    url: socks5://user:pass@example.com:1080
-```
-
-## Querying the metrics
+#### Querying metrics
 
 Get metrics for the last 6 hours using just plain SQL:
 ```sql
 select
   time,
-  latency,
-  label
-from series
+  label,
+  coalesce(latency, -1) as latency
+from pulse_uptime_v2
 where time >= now() - '6h'::interval
+group by
+  time,
+  label,
+  latency
+order by time
 ```
 
 Basic postgres/timescale query with grafana postgres data source:
 ```sql
 select
   time,
-  latency,
-  label
-from series
+  label,
+  coalesce(latency, -1) as latency
+from pulse_uptime_v2
 where $__timeFilter(time)
+group by
+  time,
+  label,
+  latency
+order by time
 ```
 
 With interval grouping (should sample data, removing points that are too close):
 ```sql
 select
   $__timeGroupAlias(time, $__interval),
-  avg(latency),
-  label
-from series
+  label,
+  avg(latency) as latency
+from pulse_uptime_v2
 where $__timeFilter(time)
 group by
   time,
-  latency,
-  label
+  label,
+  latency
 order by time
 ```
 
-There's also an exporter api, that can be enabled with the following config lines:
-```yml
-exporters:
-  web:
-    enabled: true
-```
+### Prometheus PushGateway
 
-This will enable a local http server with a path `/exporters/web/` that can be used to query metrics in json format.
+Pulse v2 doesn't have exporters api that can be used by scrapers, instead it can be configured to send metrics to PushGateway, that can be scraped instead.
 
-See the [openapi.yml](./openapi.yml) for more details.
+Set `PUSHGATEWAY_URL` env variable to enable this storage; format: `{http|https}://{host:?port}`.
 
-## Full config reference
+Please note that this driver cannot store string values as metrics and they're converted to labels instead. Boolean values are converted to integers as well.
 
-`pulse.config.yml`:
-```yml
-# defines the list of probe tasks
-probes:
-  # each probe has to have a unique tag/key/name, whatever you want to call it
-  # this key is what you will see in the metrics
-  cloudlfare-dns:
-    # probe config specifically for the http variant
-    http:
-      # the http method to use (defaults to HEAD if not set)
-      method: GET
-      # http request url, required and that's non-negotiable
-      url: https://10.10.10.10:443/
-      # optional request headers to send;
-      # this is particularly useful to status check load balancers and proxies
-      headers:
-        # here we override the '10.10.10.10:443' request host to a site name that the proxy must serve us
-        host: example.com
-      # probe interval in seconds, so one minute in this case
-      interval: 60
-      # probe operation timeout in seconds, if the target doesn't respond in that time - it will be considered to be down
-      timeout: 10
-      # optional name of the proxy to use
-      proxy: my-proxy
-      # autorun options;
-      # 'true' allows this task to autorun by itself;
-      # 'false' prevents it from being run on startup when a global autorun is enabled
-      autorun: true|false
+It's expected that you'll use something like Grafana to query the data, have fun 👍
 
-# data export API options;
-# if no exporters are enabled, pulse won't even start the http server, as it's not needed for anything
-exporters:
-  # 'web' is just a generic http/rest/whatever API exporter;
-  # no other options are supported at the moment
-  web:
-    enabled: true
+### InfluxDB
 
-# http probe client's proxy configs
-proxies:
-  # proxy name
-  my-proxy:
-    # it's url in format socks://[username:password]@hostname:port
-    # can be set as an env variable name with a dollar sign prefix or as a plain string
-    url: $MY_PROXY_URL
+Enabled by `INFLUXDB_URL` env variable, format: `{http|https}://:{token}@{host:?port}/{bucket}`
 
-taskhost:
-  # enables global task autorun;
-  # this will run all the task on startup instead of waiting for their scheduled runs
-  autorun: false
+This one is a bit fucky. Since the basic auth (aka username:pass) doesn't seem to work whatsoever with the influx v2, we have to stick with the v1 API.
+
+However, even the v1 API doesn't want to accept the credentials for some reason, which means that we have to resort to using tokens. And in my totally not biased opinion it makes sence to still pass the token in the url in the password position, while leaving the username empty or setting it to something silly. Don't worry, golang can parse that, I tried. The bucket name is passed as the sole path segment, similar to `psql` URLs.
+
+## Deploying
+
+Using a dockerfile:
+```Dockerfile
+from ghcr.io/maddsua/pulse:latest
+copy ./your-config.yml /pulse.yml
+cmd ["-config=/pulse.yml"]
 ```
