@@ -19,7 +19,7 @@ timeout: 1m		# probe run timeout in time.Duration format
 url: http://www.google.com/gen_204	# target url
 method: HEAD	# set http request method (defaults to GET)
 headers:		# optional headers that you may want to add to the request
-	user-agent: my-custom-ua			# any headers here, really
+  user-agent: my-custom-ua			# any headers here, really
 proxy_url: socks://user:pass@host:port	# a proxy to use with the request
 retries: 4		# number of retries if a request failed
 ```
@@ -47,7 +47,7 @@ By default, a simple stdout output is used. It will log probe results directly t
 
 These are the supported backends:
 
-### timescaldb/postgres
+### timescaledb/postgres
 
 The same primary db as in v1, except for the migrations being completely changed. Now, instead of using full schema migration, pulse will create a new series table for each version. This hepls prevent broken read queries from third party tools, but also gets rid of a whole bunch of package dependencies.
 
