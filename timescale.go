@@ -13,27 +13,6 @@ import (
 	_ "github.com/lib/pq"
 )
 
-type timescaleMigrator func(ctx context.Context, db *sql.DB) error
-
-var timescaleTableDefs = map[string]timescaleMigrator{
-	"pulse_uptime_v2": func(ctx context.Context, db *sql.DB) error {
-
-		_, err := db.ExecContext(ctx, `create table if not exists pulse_uptime_v2 (
-			time timestamp with time zone not null,
-			label text not null,
-			probe_elapsed int8 not null,
-			probe_type text not null,
-			up boolean not null,
-			latency int8,
-			host text,
-			http_status int2,
-			tls_version int2
-		)`)
-
-		return err
-	},
-}
-
 func NewTimescaleStorage(dbUrl string) (*timescaleStorage, error) {
 
 	const version = "v2"
@@ -43,23 +22,16 @@ func NewTimescaleStorage(dbUrl string) (*timescaleStorage, error) {
 		return nil, err
 	}
 
-	this := timescaleStorage{
-		db:      db,
-		version: version,
-		table:   "pulse_uptime_" + version,
-	}
-
-	if err := this.Ping(); err != nil {
-		db.Close()
-		return nil, err
-	}
+	tableName := "pulse_uptime_" + version
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 
-	var tableExists = func(table string) (bool, error) {
+	var tableExists = func() (bool, error) {
 
-		_, err := db.QueryContext(ctx, fmt.Sprintf("select exists (select 1 from %s)", table))
+		query := fmt.Sprintf(`select exists (select 1 from %s)`, tableName)
+
+		_, err := db.QueryContext(ctx, query)
 		if err == nil || strings.Contains(err.Error(), "does not exist") {
 			return err == nil, nil
 		}
@@ -67,29 +39,46 @@ func NewTimescaleStorage(dbUrl string) (*timescaleStorage, error) {
 		return false, err
 	}
 
-	migrator := timescaleTableDefs[this.table]
-	if migrator == nil {
-		return nil, fmt.Errorf("table migration not found for '%s'", this.table)
+	var tableInit = func() error {
+
+		query := fmt.Sprintf(`create table %s (
+			time timestamp with time zone not null,
+			label text not null,
+			probe_elapsed int8 not null,
+			probe_type text not null,
+			up boolean not null,
+			latency int8,
+			host text,
+			http_status int2,
+			tls_version int2
+		)`, tableName)
+
+		_, err := db.ExecContext(ctx, query)
+		return err
 	}
 
-	if exists, _ := tableExists(this.table); !exists {
+	if exists, _ := tableExists(); !exists {
 
 		slog.Info("TIMESCALE: Setting up",
-			slog.String("table", this.table))
+			slog.String("table", tableName))
 
-		if err := migrator(ctx, db); err != nil {
-			return nil, fmt.Errorf("table migration failed for '%s': %v", this.table, err)
+		if err := tableInit(); err != nil {
+			db.Close()
+			return nil, err
 		}
 	}
 
-	return &this, nil
+	return &timescaleStorage{
+		db:      db,
+		version: version,
+		table:   tableName,
+	}, nil
 }
 
 type timescaleStorage struct {
 	db      *sql.DB
 	version string
-
-	table string
+	table   string
 }
 
 // Returns client TypeID
