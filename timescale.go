@@ -41,13 +41,17 @@ func NewTimescaleStorage(dbUrl string) (*timescaleStorage, error) {
 	db, err := sql.Open("postgres", dbUrl)
 	if err != nil {
 		return nil, err
-	} else if err := db.Ping(); err != nil {
-		db.Close()
-		return nil, err
 	}
 
-	tables := map[string]string{
-		"uptime": "pulse_uptime_" + version,
+	this := timescaleStorage{
+		db:      db,
+		version: version,
+		table:   "pulse_uptime_" + version,
+	}
+
+	if err := this.Ping(); err != nil {
+		db.Close()
+		return nil, err
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
@@ -63,35 +67,29 @@ func NewTimescaleStorage(dbUrl string) (*timescaleStorage, error) {
 		return false, err
 	}
 
-	for key, table := range tables {
+	migrator := timescaleTableDefs[this.table]
+	if migrator == nil {
+		return nil, fmt.Errorf("table migration not found for '%s'", this.table)
+	}
 
-		migrator := timescaleTableDefs[table]
-		if migrator == nil {
-			return nil, fmt.Errorf("table migration not found for '%s' (%s)", key, table)
-		}
+	if exists, _ := tableExists(this.table); !exists {
 
-		if exists, _ := tableExists(table); !exists {
+		slog.Info("TIMESCALE: Setting up",
+			slog.String("table", this.table))
 
-			slog.Info("TIMESCALE: Setting up",
-				slog.String("table", table))
-
-			if err := migrator(ctx, db); err != nil {
-				return nil, fmt.Errorf("table migration failed for '%s' (%s): %v", key, table, err)
-			}
+		if err := migrator(ctx, db); err != nil {
+			return nil, fmt.Errorf("table migration failed for '%s': %v", this.table, err)
 		}
 	}
 
-	return &timescaleStorage{
-		db:      db,
-		version: version,
-		tables:  tables,
-	}, nil
+	return &this, nil
 }
 
 type timescaleStorage struct {
 	db      *sql.DB
 	version string
-	tables  map[string]string
+
+	table string
 }
 
 // Returns client TypeID
@@ -109,7 +107,11 @@ func (this *timescaleStorage) Close() error {
 	return this.db.Close()
 }
 
-func (this *timescaleStorage) insertContext(ctx context.Context, tablename string, row map[string]any) error {
+func (this *timescaleStorage) Ping() error {
+	return this.db.Ping()
+}
+
+func (this *timescaleStorage) insertContext(ctx context.Context, row map[string]any) error {
 
 	var columns []string
 	var args []any
@@ -124,7 +126,7 @@ func (this *timescaleStorage) insertContext(ctx context.Context, tablename strin
 	}
 
 	query := fmt.Sprintf("insert into %s (%s) values (%s)",
-		tablename,
+		this.table,
 		strings.Join(columns, ", "),
 		strings.Join(bindvars, ", "))
 
@@ -134,11 +136,6 @@ func (this *timescaleStorage) insertContext(ctx context.Context, tablename strin
 
 // Writes a single uptime metric
 func (this *timescaleStorage) WriteUptime(ctx context.Context, entry UptimeEntry) error {
-
-	tablename, has := this.tables["uptime"]
-	if !has {
-		return errors.New("unable to find target table")
-	}
 
 	if entry.Label == "" {
 		return errors.New("empty entry label")
@@ -176,5 +173,5 @@ func (this *timescaleStorage) WriteUptime(ctx context.Context, entry UptimeEntry
 		row["tls_version"] = *entry.TlsVersion
 	}
 
-	return this.insertContext(ctx, tablename, row)
+	return this.insertContext(ctx, row)
 }
