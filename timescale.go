@@ -29,7 +29,7 @@ func NewTimescaleStorage(dbUrl string) (*timescaleStorage, error) {
 
 	var tableExists = func() (bool, error) {
 
-		query := fmt.Sprintf(`select exists (select 1 from %s)`, tableName)
+		query := fmt.Sprintf("select exists (select 1 from %s)", tableName)
 
 		_, err := db.QueryContext(ctx, query)
 		if err == nil || strings.Contains(err.Error(), "does not exist") {
@@ -100,29 +100,6 @@ func (this *timescaleStorage) Ping() error {
 	return this.db.Ping()
 }
 
-func (this *timescaleStorage) insertContext(ctx context.Context, row map[string]any) error {
-
-	var columns []string
-	var args []any
-	for col, val := range row {
-		columns = append(columns, col)
-		args = append(args, val)
-	}
-
-	var bindvars []string
-	for idx := range columns {
-		bindvars = append(bindvars, "$"+strconv.Itoa(idx+1))
-	}
-
-	query := fmt.Sprintf("insert into %s (%s) values (%s)",
-		this.table,
-		strings.Join(columns, ", "),
-		strings.Join(bindvars, ", "))
-
-	_, err := this.db.ExecContext(ctx, query, args...)
-	return err
-}
-
 // Writes a single uptime metric
 func (this *timescaleStorage) WriteUptime(ctx context.Context, entry UptimeEntry) error {
 
@@ -162,5 +139,28 @@ func (this *timescaleStorage) WriteUptime(ctx context.Context, entry UptimeEntry
 		row["tls_version"] = *entry.TlsVersion
 	}
 
-	return this.insertContext(ctx, row)
+	return sqlInsertContext(ctx, this.db, this.table, row)
+}
+
+func sqlInsertContext(ctx context.Context, db *sql.DB, table string, row map[string]any) error {
+
+	var columns []string
+	var args []any
+	for col, val := range row {
+		columns = append(columns, col)
+		args = append(args, val)
+	}
+
+	var bindvars []string
+	for idx := range columns {
+		bindvars = append(bindvars, "$"+strconv.Itoa(idx+1))
+	}
+
+	query := fmt.Sprintf("insert into %s (%s) values (%s)",
+		table,
+		strings.Join(columns, ", "),
+		strings.Join(bindvars, ", "))
+
+	_, err := db.ExecContext(ctx, query, args...)
+	return err
 }
