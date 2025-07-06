@@ -15,25 +15,29 @@ import (
 )
 
 type CliFlags struct {
-	Cfg *string
+	Cfg      *string
+	Debug    *bool
+	JsonLogs *bool
 }
 
 func main() {
 
 	godotenv.Load()
 
-	if os.Getenv("DEBUG") == "true" {
+	cli := CliFlags{
+		Cfg:      flag.String("cfg", "", "config file location"),
+		Debug:    flag.Bool("debug", false, "enable debug logging"),
+		JsonLogs: flag.Bool("json_logs", false, "log in json format"),
+	}
+	flag.Parse()
+
+	if os.Getenv("DEBUG") == "true" || *cli.Debug {
 		slog.SetLogLoggerLevel(slog.LevelDebug)
 	}
 
-	if os.Getenv("LOGFMT") == "json" {
+	if os.Getenv("LOGFMT") == "json" || *cli.JsonLogs {
 		slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, nil)))
 	}
-
-	cli := CliFlags{
-		Cfg: flag.String("cfg", "", "config file location"),
-	}
-	flag.Parse()
 
 	if *cli.Cfg == "" {
 		if loc, has := FindConfig([]string{
@@ -219,7 +223,7 @@ func main() {
 			}
 
 		case <-exitCh:
-			slog.Info("Shutting down...")
+			slog.Warn("Shutting down...")
 			return
 		}
 	}
