@@ -60,6 +60,9 @@ func main() {
 		os.Exit(1)
 	}
 
+	slog.Info("Config location",
+		slog.String("file", *cli.Cfg))
+
 	var storageDriver pulse.StorageWriter
 
 	if val := os.Getenv("TIMESCALE_URL"); val != "" {
