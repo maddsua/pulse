@@ -190,9 +190,15 @@ func (this *HttpProbe) Exec(ctx context.Context) error {
 
 		resp, err := this.client.Do(this.req.Clone(ctx))
 		if err != nil {
+
 			if isProxyError(err) {
 				return nil, err
 			}
+
+			return &responseStatus{
+				Elapsed: time.Since(started),
+				Err:     err,
+			}, nil
 		}
 
 		resp.Body.Close()
